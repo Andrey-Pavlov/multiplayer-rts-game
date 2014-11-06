@@ -1,0 +1,5 @@
+# Local Ignore #
+###################
+.c9/
+.git/
+node_modules/

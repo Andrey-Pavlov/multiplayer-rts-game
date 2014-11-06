@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>Last Colony</title>
+
+  <link rel="stylesheet" href="css/reset.css" type="text/css" media="screen" charset="utf-8">
+  <link rel="stylesheet" href="css/styles.css" type="text/css" media="screen" charset="utf-8">
+</head>
+
+<body>
+  <div>
+    <div id="backbround"></div>
+    <div id="gamecontainer">
+
+      <div id="gamestartscreen" class="gamelayer">
+        <span id="singleplayer">Campaign</span>
+        <br>
+        <span id="multiplayer">Multiplayer</span>
+        <br>
+      </div>
+
+      <div id="missionscreen" class="gamelayer">
+        <input type="button" id="entermission">
+        <input type="button" id="exitmission">
+        <div id="missonbriefing">Welcome to your first mission.</div>
+      </div>
+
+      <div id="gameinterfacescreen" class="gamelayer">
+        <div id="gamemessages"></div>
+        <div id="callerpicture"></div>
+        <div id="cash"></div>
+        <div id="sidebarbuttons">
+          <input type="button" id="starportbutton" title="Starport">
+          <input type="button" id="turretbutton" title="Turret">
+          <input type="button" id="placeholder1" disabled>
+          <input type="button" id="scouttankbutton" title="Scout Tank">
+          <input type="button" id="heavytankbutton" title="Heavy Tank">
+          <input type="button" id="harvesterbutton" title="Harvester">
+          <input type="button" id="chopperbutton" title="Copter">
+          <input type="button" id="wraithbutton" title="Wraith">
+          <input type="button" id="placeholder2" disabled>
+        </div>
+        <canvas id="gamebackgroundcanvas" height="400" width="480"></canvas>
+        <canvas id="gameforegroundcanvas" height="400" width="480"></canvas>
+      </div>
+      <div id="messageboxscreen" class="gamelayer">
+        <div id="messagebox">
+          <span id="messageboxtext"></span>
+          <input type="button" id="messageboxok" onclick="app.game.base.messageBox.messageBoxOK();">
+          <input type="button" id="messageboxcancel" onclick="app.game.base.messageBox.messageBoxCancel();">
+        </div>
+      </div>
+      <div id="loadingscreen" class="gamelayer">
+        <div id="loadingmessage"></div>
+      </div>
+
+    </div>
+  </div>
+  <script src="js/libraries/jquery-2.1.1.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript" src="js/libraries/AStar_pathfinding.js"></script>
+  <script type="text/javascript" src="js/common/inheritance.js"></script>
+  <script src="js/common/namespace.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/animate/animatePolyfill.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/common/assetLoader.js" type="text/javascript" charset="utf-8"></script>
+  <script type="text/javascript" src="js/common.js"></script>
+
+  <!-- Definitions for game entities -->
+  <script src="js/entities/base.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/entities/buildings.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/entities/vehicles.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/entities/aircraft.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/entities/terrain.js" type="text/javascript" charset="utf-8"></script>f
+
+  <script src="js/maps.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/mouse.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/sidebar.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/singleplayer.js" type="text/javascript" charset="utf-8"></script>
+  <script src="js/game.js" type="text/javascript" charset="utf-8"></script>
+
+  <script>
+    $(function() {
+
+      var $gameLayer = $('.gamelayer');
+      var $startScreen = $('#gamestartscreen');
+      var base = app.game.base;
+      var game = app.game;
+
+      base.init($gameLayer, $startScreen);
+
+      $('#singleplayer').click(function() {
+        game.singleplayer.start();
+      });
+
+      $('#multiplayer').click(function() {
+        game.miltiplayer.start();
+      });
+
+      $('#entermission').click(function() {
+        game.singleplayer.play();
+      });
+
+      $('#exitmission').click(function() {
+        game.singleplayer.exit();
+      });
+    });
+  </script>
+</body>
+
+</html>

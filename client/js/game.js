@@ -1,0 +1,613 @@
+(function() {
+    var namespace = app.namespace('game');
+
+    var loader = app.common.loader,
+        mouse = app.game.mouse,
+        sidebar = app.game.sidebar,
+        maps = app.game.maps,
+        singleplayer = app.game.singleplayer,
+        entities = app.game.entities;
+
+    var game = {
+        /* Debug */
+        debug: false,
+        
+        type: null,
+        team: null,
+        currentMapImage: null,
+        currentLevel: null,
+
+        // The map is broken into square tiles of this size (20 pixels x 20 pixels)
+        gridSize: 20,
+        // Store whether or not the background moved and needs to be redrawn
+        backgroundChanged: true,
+
+        // A control loop that runs at a fixed period of time
+        animationTimeout: 100, // 100 milliseconds or 10 times a second
+
+        offsetX: 0, // X & Y panning offsets for the map
+
+        offsetY: 0,
+
+        panningThreshold: 20, // Distance from edge of canvas at which panning starts
+
+        panningSpeed: 7, // Pixels to pan every drawing loop
+
+        /* Selection Related Code */
+        selectionBorderColor: "rgba(255,255,0,0.5)",
+        selectionFillColor: "rgba(255,215,0,0.2)",
+        healthBarBorderColor: "rgba(0,0,0,0.8)",
+        healthBarHealthyFillColor: "rgba(0,255,0,0.5)",
+        healthBarDamagedFillColor: "rgba(255,0,0,0.5)",
+        lifeBarHeight: 5,
+
+        //Rectangle
+        obstructedColor: "rgba(215, 44, 44, 0.5)",
+
+        //Movement related properties
+        speedAdjustmentFactor: 1 / 64,
+        turnSpeedAdjustmentFactor: 1 / 8,
+
+        fps: 30,
+        drawingInterpolationFactor: 0,
+
+        // Functions for communicating with player
+        characters: {
+            "system": {
+                "name": "System",
+                "image": "/images/characters/system.png"
+            }
+        },
+
+        // Start preloading assets
+        init: function($gameLayer, $startScreen) {
+            loader.init();
+            mouse.init();
+            sidebar.init();
+            maps.init();
+            singleplayer.init();
+
+            $gameLayer.hide();
+            $startScreen.show();
+
+            var backgroundCanvas = $('#gamebackgroundcanvas')[0];
+            game.backgroundCanvas = backgroundCanvas;
+            game.backgroundContext = backgroundCanvas.getContext('2d');
+            game.backgroundContext.imageSmoothingEnabled = false;
+
+            var foregroundCanvas = $('#gameforegroundcanvas')[0];
+            game.foregroundCanvas = foregroundCanvas;
+            game.foregroundContext = foregroundCanvas.getContext('2d');
+            game.foregroundContext.imageSmoothingEnabled = false;
+
+            game.canvasWidth = game.backgroundCanvas.width;
+            game.canvasHeight = game.backgroundCanvas.height;
+        },
+        
+         // Methods for handling triggered events within the game
+        initTrigger: function(trigger) {
+                if (trigger.type == "timed") {
+                    trigger.timeout = setTimeout(function() {
+                        game.runTrigger(trigger);
+                    }, trigger.time)
+                }
+                else if (trigger.type == "conditional") {
+                    trigger.interval = setInterval(function() {
+                        game.runTrigger(trigger);
+                    }, 1000)
+                }
+            },
+            
+        runTrigger: function(trigger) {
+                if (trigger.type == "timed") {
+                    // Re initialize the trigger based on repeat settings
+                    if (trigger.repeat) {
+                        game.initTrigger(trigger);
+                    }
+                    // Call the trigger action
+                    trigger.action(trigger);
+                }
+                else if (trigger.type == "conditional") {
+                    //Check if the condition has been satisfied
+                    if (trigger.condition()) {
+                        // Clear the trigger
+                        game.clearTrigger(trigger);
+                        // Call the trigger action
+                        trigger.action(trigger);
+                    }
+                }
+            },
+            
+        clearTrigger: function(trigger) {
+                if (trigger.type == "timed") {
+                    clearTimeout(trigger.timeout);
+                }
+                else if (trigger.type == "conditional") {
+                    clearInterval(trigger.interval);
+                }
+            },
+            
+        end: function() {
+                // Clear Any Game Triggers
+                if (game.currentLevel.triggers) {
+                    for (var i = game.currentLevel.triggers.length - 1; i >= 0; i--) {
+                        game.clearTrigger(game.currentLevel.triggers[i]);
+                    };
+                }
+                game.running = false;
+            },
+
+        start: function() {
+            $('.gamelayer').hide();
+            $('#gameinterfacescreen').show();
+            game.running = true;
+            game.refreshBackground = true;
+
+            limitLoop(game.drawingLoop, this.fps);
+
+            $('#gamemessages').html('');
+            
+            // Initialize All Game Triggers
+            for (var i = game.currentLevel.triggers.length - 1; i >= 0; i--) {
+                game.initTrigger(game.currentLevel.triggers[i]);
+            };
+        },
+
+        clearSelection: function() {
+            while (game.selectedItems.length > 0) {
+                game.selectedItems.pop().selected = false;
+            }
+        },
+
+        selectItem: function(item, shiftPressed) {
+            // Pressing shift and clicking on a selected item will deselect it
+            if (shiftPressed && item.selected) {
+                // deselect item
+                item.selected = false;
+                for (var i = game.selectedItems.length - 1; i >= 0; i--) {
+                    if (game.selectedItems[i].uid == item.uid) {
+                        game.selectedItems.splice(i, 1);
+                        break;
+                    }
+                };
+                return;
+            }
+            if (item.selectable && !item.selected) {
+                item.selected = true;
+                game.selectedItems.push(item);
+            }
+        },
+
+        handlePanning: function() {
+            // do not pan if mouse leaves the canvas
+            if (!mouse.insideCanvas) {
+                return;
+            }
+
+            if (mouse.x <= game.panningThreshold) {
+                if (game.offsetX >= game.panningSpeed) {
+                    game.refreshBackground = true;
+                    game.offsetX -= game.panningSpeed;
+                }
+            }
+            else if (mouse.x >= game.canvasWidth - game.panningThreshold) {
+                if (game.offsetX + game.canvasWidth + game.panningSpeed <= game.currentMapImage.width) {
+                    game.refreshBackground = true;
+                    game.offsetX += game.panningSpeed;
+                }
+            }
+            if (mouse.y <= game.panningThreshold) {
+                if (game.offsetY >= game.panningSpeed) {
+                    game.refreshBackground = true;
+                    game.offsetY -= game.panningSpeed;
+                }
+            }
+            else if (mouse.y >= game.canvasHeight - game.panningThreshold) {
+                if (game.offsetY + game.canvasHeight + game.panningSpeed <= game.currentMapImage.height) {
+                    game.refreshBackground = true;
+                    game.offsetY += game.panningSpeed;
+                }
+            }
+            if (game.refreshBackground) {
+                // Update mouse game coordinates based on game offsets
+                mouse.calculateGameCoordinates();
+            }
+        },
+
+        animationLoop: function() {
+            // Animate the Sidebar
+            app.game.sidebar.animate();
+
+            // Process orders for any item that handles it
+            for (var i = game.items.length - 1; i >= 0; i--) {
+                if (game.items[i].processOrders) {
+                    game.items[i].processOrders();
+                }
+            };
+
+            // Animate each of the elements within the game
+            for (var i = game.items.length - 1; i >= 0; i--) {
+                game.items[i].animate();
+            };
+
+            // Sort game items into a sortedItems array based on their x,y coordinates
+            game.sortedItems = $.extend([], game.items);
+            game.sortedItems.sort(function(a, b) {
+                return b.y - a.y + ((b.y == a.y) ? (a.x - b.x) : 0);
+            });
+
+            //Save the time that the last animation loop completed
+            game.lastAnimationTime = Date.now();
+        },
+
+        drawingLoop: function() {
+            // Handle Panning the Map
+            game.handlePanning();
+
+            //Since drawing the background map is a fairly large operation,
+            //we only redraw the background if it changes (due to panning)
+            if (game.refreshBackground) {
+                game.backgroundContext.drawImage(game.currentMapImage, game.offsetX, game.offsetY,
+                    game.canvasWidth, game.canvasHeight, 0, 0, game.canvasWidth, game.canvasHeight);
+
+                game.refreshBackground = false;
+            }
+
+
+            game.foregroundContext.clearRect(0, 0, game.canvasWidth, game.canvasHeight);
+
+            // For debug
+            if (game.debug) {
+                game.foregroundContext.fillStyle = game.obstructedColor;
+
+                if (game.currentMapPassableGrid) {
+                    for (var y = game.currentMapPassableGrid.length - 1; y >= 0; y--) {
+
+                        for (var x = game.currentMapPassableGrid[y].length - 1; x >= 0; x--) {
+
+                            if (game.currentMapPassableGrid[y][x] === 1) {
+                                game.foregroundContext.fillRect(x * game.gridSize - game.offsetX, y * game.gridSize - game.offsetY, game.gridSize, game.gridSize)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Start drawing the foreground elements
+            for (var i = game.sortedItems.length - 1; i >= 0; i--) {
+                var item = game.sortedItems[i];
+
+                item.draw();
+            }
+
+            // Draw the mouse
+            mouse.draw();
+        },
+
+        resetArrays: function() {
+            game.counter = 1;
+            game.items = [];
+            game.sortedItems = [];
+            game.buildings = [];
+            game.vehicles = [];
+            game.aircraft = [];
+            game.terrain = [];
+            game.triggeredEvents = [];
+            game.selectedItems = [];
+        },
+
+        add: function(itemDetails) {
+            // Set a unique id for the item
+            if (!itemDetails.uid) {
+                itemDetails.uid = game.counter++;
+            }
+
+            var item = entities[itemDetails.type].add(itemDetails);
+
+            // Add the item to the items array
+            game.items.push(item);
+
+            // Add the item to the type specific array
+            game[item.type].push(item);
+
+            clearPassableGrid(item);
+
+            return item;
+        },
+
+        remove: function(item) {
+
+            // Unselect item if it is selected
+            item.selected = false;
+            for (var i = game.selectedItems.length - 1; i >= 0; i--) {
+                if (game.selectedItems[i].uid == item.uid) {
+                    game.selectedItems.splice(i, 1);
+                    break;
+                }
+            }
+
+            // Remove item from the items array
+            for (var i = game.items.length - 1; i >= 0; i--) {
+                if (game.items[i].uid == item.uid) {
+                    game.items.splice(i, 1);
+                    break;
+                }
+            }
+
+            // Remove items from the type specific array
+            for (var i = game[item.type].length - 1; i >= 0; i--) {
+                if (game[item.type][i].uid == item.uid) {
+                    game[item.type].splice(i, 1);
+                    break;
+                }
+            }
+
+            clearPassableGrid(item);
+        },
+
+        // Send command to either singleplayer or multiplayer object
+        sendCommand: function(uids, details) {
+            if (game.type == "singleplayer") {
+                app.game.singleplayer.sendCommand(uids, details);
+            }
+            else {
+                app.game.multiplayer.sendCommand(uids, details);
+            }
+        },
+
+        getItemByUid: function(uid) {
+            for (var i = game.items.length - 1; i >= 0; i--) {
+                if (game.items[i].uid == uid) {
+                    return game.items[i];
+                }
+            };
+        },
+
+        // Receive command from singleplayer or multiplayer object and send it to units
+        processCommand: function(uids, details) {
+            // In case the target "to" object is in terms of uid, fetch the target object
+            var toObject;
+            if (details.toUid) {
+                toObject = game.getItemByUid(details.toUid);
+                if (!toObject || toObject.lifeCode == "dead") {
+                    // To object no longer exists. Invalid command
+                    return;
+                }
+            }
+
+            for (var i in uids) {
+                var uid = uids[i];
+                var item = game.getItemByUid(uid);
+                //if uid is a valid item, set the order for the item
+                if (item) {
+                    details.isCommand = true;
+                    item.orders = $.extend(true, {}, details);
+                    if (toObject) {
+                        item.orders.to = toObject;
+                    }
+                }
+            }
+        },
+
+        rebuildPassableGrid: function() {
+
+            game.currentMapPassableGrid = $.extend(true, [], game.currentMapTerrainGrid);
+
+            for (var i = game.items.length - 1; i >= 0; i--) {
+
+                var item = game.items[i];
+
+                if (item.type == 'buildings' || item.type == 'terrain' || (item.type === 'vehicles' && item.orders.type === 'stand')) {
+
+                    for (var y = item.passableGrid.length - 1; y >= 0; y--) {
+
+                        for (var x = item.passableGrid[y].length - 1; x >= 0; x--) {
+
+                            if (item.passableGrid[y][x]) {
+
+                                if (item.type === 'vehicles') {
+
+                                    // Mark all squares under or near the vehicle as unbuildable
+                                    var radius = item.radius / game.gridSize;
+
+                                    var x1 = Math.max(Math.floor(item.x - radius), 0);
+                                    var x2 = Math.min(Math.floor(item.x + radius), game.currentLevel.mapGridWidth - 1);
+                                    var y1 = Math.max(Math.floor(item.y - radius), 0);
+                                    var y2 = Math.min(Math.floor(item.y + radius), game.currentLevel.mapGridHeight - 1);
+
+                                    for (var xx = x1; xx <= x2; xx++) {
+                                        for (var yy = y1; yy <= y2; yy++) {
+                                            game.currentMapPassableGrid[yy][xx] = 1;
+                                        };
+                                    };
+
+                                    // var offset = item.radius / this.gridSize;
+
+                                    // var length = Math.ceil(2 * offset);
+                                    // //length = length > 1 ? length : 2;
+
+                                    // //for unit with radius == 1/gridsize
+                                    // game.currentMapPassableGrid[Math.floor(item.y - offset)][Math.floor(item.x - offset)] = 1;
+                                    // game.currentMapPassableGrid[Math.floor(item.y + offset)][Math.floor(item.x + offset)] = 1;
+                                    // game.currentMapPassableGrid[Math.floor(item.y - offset)][Math.floor(item.x + offset)] = 1;
+                                    // game.currentMapPassableGrid[Math.floor(item.y + offset)][Math.floor(item.x - offset)] = 1;
+
+                                    // (function() {
+                                    // for (var i = 1; i < length; i++) {
+                                    //     for (var j = 1; j < length; j++) {
+                                    //         game.currentMapPassableGrid[Math.floor(item.y - offset) + i][Math.floor(item.x - offset) + j] = 1;
+                                    //         game.currentMapPassableGrid[Math.floor(item.y + offset) - i][Math.floor(item.x + offset) - j] = 1;
+                                    //     }
+                                    // }
+                                    // }())
+                                }
+                                else {
+                                    game.currentMapPassableGrid[item.y + y][item.x + x] = 1;
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
+        },
+
+        rebuildBuildableGrid: function() {
+            game.currentMapBuildableGrid = $.extend(true, [], game.currentMapTerrainGrid);
+
+            for (var i = game.items.length - 1; i >= 0; i--) {
+                var item = game.items[i];
+
+                if (item.type == "buildings" || item.type == "terrain") {
+                    for (var y = item.buildableGrid.length - 1; y >= 0; y--) {
+                        for (var x = item.buildableGrid[y].length - 1; x >= 0; x--) {
+                            if (item.buildableGrid[y][x]) {
+                                game.currentMapBuildableGrid[item.y + y][item.x + x] = 1;
+                            }
+                        };
+                    };
+                }
+                else if (item.type == "vehicles") {
+
+                    // Mark all squares under or near the vehicle as unbuildable
+                    var radius = item.radius / game.gridSize;
+
+                    var x1 = Math.max(Math.floor(item.x - radius), 0);
+                    var x2 = Math.min(Math.floor(item.x + radius), game.currentLevel.mapGridWidth - 1);
+                    var y1 = Math.max(Math.floor(item.y - radius), 0);
+                    var y2 = Math.min(Math.floor(item.y + radius), game.currentLevel.mapGridHeight - 1);
+
+                    for (var xx = x1; xx <= x2; xx++) {
+                        for (var yy = y1; yy <= y2; yy++) {
+                            game.currentMapBuildableGrid[yy][xx] = 1;
+                        };
+                    };
+                }
+            };
+        },
+
+        showMessage: function(from, message) {
+            var character = game.characters[from];
+            if (character) {
+                from = character.name;
+                if (character.image) {
+                    $('#callerpicture').html('<img src="' + character.image + '"/>');
+                    // hide the profile picture after six seconds
+                    setTimeout(function() {
+                        $('#callerpicture').html("");
+                    }, 6000)
+                }
+            }
+            // Append message to messages pane and scroll to the bottom
+            var $gamemessages = this.showMessage.$gamemessages;
+
+            if (!$gamemessages) {
+                $gamemessages = $('#gamemessages');
+            }
+
+            var existingMessage = $gamemessages.html();
+            var newMessage = existingMessage + '<span>' + from + ': </span>' + message + '<br>';
+            $gamemessages.html(newMessage);
+            $gamemessages.animate({
+                scrollTop: $gamemessages.prop('scrollHeight')
+            }, 'fast');
+        },
+        
+        messageBox: {
+            /* Message Box related code*/
+            messageBoxOkCallback: undefined,
+            messageBoxCancelCallback: undefined,
+            showMessageBox: function(message, onOK, onCancel) {
+                // Set message box text
+                $('#messageboxtext').html(message);
+                
+                // Set message box ok and cancel handlers and enable buttons
+                if (!onOK) {
+                    game.messageBoxOkCallback = undefined;
+                }
+                else {
+                    game.messageBoxOkCallback = onOK;
+                }
+                
+                if (!onCancel) {
+                    game.messageBoxCancelCallback = undefined;
+                    $("#messageboxcancel").hide();
+                }
+                else {
+                    game.messageBoxCancelCallback = onCancel;
+                    $("#messageboxcancel").show();
+                }
+                
+                // Display the message box and wait for user to click a button
+                $('#messageboxscreen').show();
+            },
+            messageBoxOK: function() {
+                $('#messageboxscreen').hide();
+                
+                if (game.messageBoxOkCallback) {
+                    game.messageBoxOkCallback()
+                }
+            },
+            messageBoxCancel: function() {
+                $('#messageboxscreen').hide();
+                
+                if (game.messageBoxCancelCallback) {
+                    game.messageBoxCancelCallback();
+                }
+            },
+        }
+    };
+
+    namespace.base = game;
+
+    //Functions
+    function clearPassableGrid(item) {
+        if (item.type == "buildings" || item.type == "terrain") {
+            game.currentMapPassableGrid = undefined;
+        }
+    }
+
+    var limitLoop = function(fn, fps) {
+
+        var then = Date.now();
+
+        // custom fps, otherwise fallback to 60
+        fps = fps || 60;
+        var interval = 1000 / fps;
+
+        return (function loop() {
+            if (game.running) {
+                requestAnimationFrame(loop);
+
+
+                // again, Date.now() if it's available
+                var now = Date.now();
+                var delta = now - then;
+
+                if (delta > interval) {
+                    // Update time
+                    // now - (delta % interval) is an improvement over just 
+                    // using then = now, which can end up lowering overall fps
+                    then = now - (delta % interval);
+
+                    // Check the time since the game was animated and calculate a linear interpolation factor (-1 to 0)
+                    // since drawing will happen more often than animation
+                    game.lastDrawTime = now;
+                    if (game.lastAnimationTime) {
+                        game.drawingInterpolationFactor = (game.lastDrawTime - game.lastAnimationTime) / game.animationTimeout - 1;
+                        if (game.drawingInterpolationFactor > 0) { // No point interpolating beyond the next animation loop...
+                            game.drawingInterpolationFactor = 0;
+                        }
+                    }
+                    else {
+                        game.drawingInterpolationFactor = -1;
+                    }
+
+                    // call the fn
+                    fn();
+                }
+            }
+        }());
+    };
+
+}());
