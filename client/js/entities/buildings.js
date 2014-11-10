@@ -1,12 +1,22 @@
 (function() {
     var namespace = app.namespace('game.entities'),
-        Entity = namespace.Entity;
+        Entity = namespace.Entity,
+        CombatUnit = namespace.CombatUnit,
+        entities = null,
+        common = null,
+        game = null;
 
     Buildings.inherit(Entity);
 
     namespace.buildings = new Buildings();
 
     function Buildings() {
+        this.init = function() {
+            game = app.game.base;
+            entities = namespace;
+            common = app.game.common;
+        }
+        
         this.list = {
             "base": {
                 name: "base",
@@ -75,59 +85,56 @@
                     count: 1
                 }, ],
                 processOrders: function() {
-                    var game = app.game.base,
-                        entities = app.game.entities;
-                    
-                        switch (this.orders.type) {
-                            case "construct-unit":
-                                if (this.lifeCode != "healthy") {
-                                    return;
-                                }
-                                // First make sure there is no unit standing on top of the building
-                                var unitOnTop = false;
-                                for (var i = game.items.length - 1; i >= 0; i--) {
-                                    var item = game.items[i];
-                                    if (item.type == "vehicles" || item.type == "aircraft") {
-                                        if (item.x > this.x && item.x < this.x + 2 && item.y > this.y &&
-                                            item.y < this.y + 3) {
-                                            unitOnTop = true;
-                                            break;
-                                        }
-                                    }
-                                };
-                                
-                                var cost = entities[this.orders.details.type].list[this.orders.details.name].cost;
-                                
-                                if (unitOnTop) {
-                                    if (this.team == game.team) {
-                                        game.showMessage("system", "Warning! Cannot teleport unit while landing bay is occupied.");
+                    switch (this.orders.type) {
+                        case "construct-unit":
+                            if (this.lifeCode != "healthy") {
+                                return;
+                            }
+                            // First make sure there is no unit standing on top of the building
+                            var unitOnTop = false;
+                            for (var i = game.items.length - 1; i >= 0; i--) {
+                                var item = game.items[i];
+                                if (item.type == "vehicles" || item.type == "aircraft") {
+                                    if (item.x > this.x && item.x < this.x + 2 && item.y > this.y &&
+                                        item.y < this.y + 3) {
+                                        unitOnTop = true;
+                                        break;
                                     }
                                 }
-                                else if (game.cash[this.team] < cost) {
-                                    if (this.team == game.team) {
-                                        game.showMessage("system", "Warning! Insufficient Funds. Need " + cost + " credits.");
-                                    }
+                            };
+
+                            var cost = entities[this.orders.details.type].list[this.orders.details.name].cost;
+
+                            if (unitOnTop) {
+                                if (this.team == game.team) {
+                                    game.showMessage("system", "Warning! Cannot teleport unit while landing bay is occupied.");
                                 }
-                                else {
-                                    this.action = "open";
-                                    this.animationIndex = 0;
-                                    // Position new unit above center of starport
-                                    var itemDetails = this.orders.details;
-                                    itemDetails.x = this.x + 0.5 * this.pixelWidth / game.gridSize;
-                                    itemDetails.y = this.y +  0.5 * this.pixelHeight / game.gridSize;
-                                    
-                                    // Teleport in unit and subtract the cost from player cash
-                                    itemDetails.action = "teleport";
-                                    
-                                    itemDetails.team = this.team;
-                                    game.cash[this.team] -= cost;
-                                    this.constructUnit = $.extend(true, {}, itemDetails);
+                            }
+                            else if (game.cash[this.team] < cost) {
+                                if (this.team == game.team) {
+                                    game.showMessage("system", "Warning! Insufficient Funds. Need " + cost + " credits.");
                                 }
-                                this.orders = {
-                                    type: "stand"
-                                };
-                                break;
-                        }
+                            }
+                            else {
+                                this.action = "open";
+                                this.animationIndex = 0;
+                                // Position new unit above center of starport
+                                var itemDetails = this.orders.details;
+                                itemDetails.x = this.x + 0.5 * this.pixelWidth / game.gridSize;
+                                itemDetails.y = this.y + 0.5 * this.pixelHeight / game.gridSize;
+
+                                // Teleport in unit and subtract the cost from player cash
+                                itemDetails.action = "teleport";
+
+                                itemDetails.team = this.team;
+                                game.cash[this.team] -= cost;
+                                this.constructUnit = $.extend(true, {}, itemDetails);
+                            }
+                            this.orders = {
+                                type: "stand"
+                            };
+                            break;
+                    }
                 }
             },
             "harvester": {
@@ -158,7 +165,7 @@
                     count: 1
                 }, ],
             },
-            "ground-turret": {
+            "ground-turret": $.extend(true, new CombatUnit(), {
                 name: "ground-turret",
                 canAttack: true,
                 canAttackLand: true,
@@ -196,7 +203,81 @@
                     name: "damaged",
                     count: 1
                 }, ],
-            }
+                
+                processOrders: function() {
+                    var targets = null;
+                    
+                    if (this.reloadTimeLeft) {
+                        this.reloadTimeLeft--;
+                    }
+                    
+                    // damaged turret cannot attack
+                    if (this.lifeCode != "healthy") {
+                        return;
+                    }
+                    
+                    switch (this.orders.type) {
+                        case "guard":
+                            
+                                targets = this.findTargetsInSight();
+                                
+                            if (targets.length > 0) {
+                                this.orders = {
+                                    type: "attack",
+                                    to: targets[0]
+                                };
+                            }
+                            break;
+                        case "attack":
+                            if (!this.orders.to ||
+                                this.orders.to.lifeCode == "dead" ||
+                                !this.isValidTarget(this.orders.to) ||
+                                (Math.pow(this.orders.to.x - this.x, 2) +
+                                    Math.pow(this.orders.to.y - this.y, 2)) > Math.pow(this.sight, 2)
+                            ) {
+                                
+                                    targets = this.findTargetsInSight();
+                                    
+                                if (targets.length > 0) {
+                                    this.orders.to = targets[0];
+                                }
+                                else {
+                                    this.orders = {
+                                        type: "guard"
+                                    };
+                                }
+                            }
+                            if (this.orders.to) {
+                                var newDirection = common.findFiringAngle(this.orders.to, this, this.directions);
+                                var difference = common.angleDiff(this.direction, newDirection, this.directions);
+                                var turnAmount = this.turnSpeed * game.turnSpeedAdjustmentFactor;
+                                if (Math.abs(difference) > turnAmount) {
+                                    this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) /
+                                        difference, this.directions);
+                                    return;
+                                }
+                                else {
+                                    this.direction = newDirection;
+                                    if (!this.reloadTimeLeft) {
+                                        this.reloadTimeLeft = entities.bullets.list[this.weaponType].reloadTime;
+                                        var angleRadians =- (Math.round(this.direction) / this.directions) * 2 * Math.PI;
+                                        var bulletX = this.x + 0.5 - (1 * Math.sin(angleRadians));
+                                        var bulletY = this.y + 0.5 - (1 * Math.cos(angleRadians));
+                                        var bullet = game.add({
+                                            name: this.weaponType,
+                                            type: "bullets",
+                                            x: bulletX,
+                                            y: bulletY,
+                                            direction: this.direction,
+                                            target: this.orders.to
+                                        });
+                                    }
+                                }
+                            }
+                            break;
+                    }
+                }
+            })
         };
 
         this.defaults = {
@@ -211,15 +292,13 @@
             selectable: true,
             // Default function for animating a building
             animate: function() {
-                var gameBase = app.game.base;
-
                 // Consider an item healthy if it has more than 40% life
                 if (this.life > this.hitPoints * 0.4) {
                     this.lifeCode = "healthy";
                 }
                 else if (this.life <= 0) {
                     this.lifeCode = "dead";
-                    gameBase.remove(this);
+                    game.remove(this);
                     return;
                 }
                 else {
@@ -236,10 +315,10 @@
 
                         if (this.animationIndex >= this.imageList.count) {
                             this.animationIndex = 0;
-                            
-                            if (this.lifeCode == "healthy" && this.name === 'base'){
+
+                            if (this.lifeCode == "healthy" && this.name === 'base') {
                                 // Harvesters mine 2 credits of cash per animation cycle
-                                gameBase.cash[this.team] += 0.5;
+                                game.cash[this.team] += 0.5;
                             }
                         }
                         break;
@@ -301,40 +380,40 @@
                         if (this.animationIndex >= this.imageList.count) {
                             this.animationIndex = 0;
                             this.action = "close";
-                             // If constructUnit has been set, add the new unit to the game
+                            // If constructUnit has been set, add the new unit to the game
                             if (this.constructUnit) {
-                                gameBase.add(this.constructUnit);
+                                game.add(this.constructUnit);
                                 this.constructUnit = undefined;
                             }
-                            }
+                        }
                         break;
 
                     case "deploy":
                         this.imageList = this.spriteArray["deploy"];
                         this.imageOffset = this.imageList.offset + this.animationIndex;
                         this.animationIndex++;
-                        
+
                         // Once deploying is complete, go back to stand
                         if (this.animationIndex >= this.imageList.count) {
                             this.animationIndex = 0;
                             this.action = "harvest";
                         }
                         break;
-                        
+
                     case "harvest":
                         this.imageList = this.spriteArray[this.lifeCode];
                         this.imageOffset = this.imageList.offset + this.animationIndex;
                         this.animationIndex++;
-                        
-                        if (this.animationIndex>=this.imageList.count){
+
+                        if (this.animationIndex >= this.imageList.count) {
                             this.animationIndex = 0;
-                            
-                            if (this.lifeCode == "healthy"){
+
+                            if (this.lifeCode == "healthy") {
                                 // Harvesters mine 2 credits of cash per animation cycle
-                                gameBase.cash[this.team] += 2;
+                                game.cash[this.team] += 2;
                             }
                         }
-                    break;
+                        break;
 
                     case "guard":
                         if (this.lifeCode == "damaged") {
@@ -343,15 +422,16 @@
                         }
                         else {
                             // The healthy turret has 8 directions
-                            this.imageList = this.spriteArray[this.lifeCode + "-" + this.direction];
+                            var direction = common.wrapDirection(Math.round(this.direction),this.directions);
+                            this.imageList = this.spriteArray[this.lifeCode+"-"+ direction];
                         }
+                        
                         this.imageOffset = this.imageList.offset;
+                        
                         break;
                 }
             },
             processOrders: function() {
-                var game = app.game.base;
-                
                 switch (this.orders.type) {
                     case "construct-building":
                         this.action = "construct";
@@ -370,10 +450,8 @@
             },
             // Default function for drawing a building
             draw: function() {
-                var gameBase = app.game.base;
-
-                var x = (this.x * gameBase.gridSize) - gameBase.offsetX - this.pixelOffsetX;
-                var y = (this.y * gameBase.gridSize) - gameBase.offsetY - this.pixelOffsetY;
+                var x = (this.x * game.gridSize) - game.offsetX - this.pixelOffsetX;
+                var y = (this.y * game.gridSize) - game.offsetY - this.pixelOffsetY;
 
                 this.drawingX = x;
                 this.drawingY = y;
@@ -385,13 +463,11 @@
                 // All sprite sheets will have blue in the first row and green in the second row
                 var colorIndex = (this.team == "blue") ? 0 : 1;
                 var colorOffset = colorIndex * this.pixelHeight;
-                gameBase.foregroundContext.drawImage(this.spriteSheet,
+                game.foregroundContext.drawImage(this.spriteSheet,
                     this.imageOffset * this.pixelWidth, colorOffset, this.pixelWidth, this.pixelHeight,
                     x, y, this.pixelWidth, this.pixelHeight);
             },
             drawLifeBar: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX + this.pixelOffsetX;
                 var y = this.drawingY - 2 * game.lifeBarHeight;
 
@@ -403,8 +479,6 @@
                 game.foregroundContext.strokeRect(x, y, this.baseWidth, game.lifeBarHeight)
             },
             drawSelection: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX + this.pixelOffsetX;
                 var y = this.drawingY + this.pixelOffsetY;
                 game.foregroundContext.strokeStyle = game.selectionBorderColor;
@@ -414,7 +488,6 @@
                 game.foregroundContext.strokeRect(x - 1, y - 1, this.baseWidth + 2, this.baseHeight + 2);
             },
         };
-
-
     }
+    
 }());

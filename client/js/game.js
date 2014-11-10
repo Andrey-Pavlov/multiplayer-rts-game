@@ -2,10 +2,12 @@
     var namespace = app.namespace('game');
 
     var loader = app.common.loader,
+        common = app.game.common,
         mouse = app.game.mouse,
         sidebar = app.game.sidebar,
         maps = app.game.maps,
         singleplayer = app.game.singleplayer,
+        multiplayer = app.game.multiplayer,
         entities = app.game.entities;
 
     var game = {
@@ -61,11 +63,15 @@
 
         // Start preloading assets
         init: function($gameLayer, $startScreen) {
+            common.init();
             loader.init();
             mouse.init();
             sidebar.init();
             maps.init();
             singleplayer.init();
+            
+            //Entities
+            entities.init();
 
             $gameLayer.hide();
             $startScreen.show();
@@ -216,7 +222,7 @@
 
         animationLoop: function() {
             // Animate the Sidebar
-            app.game.sidebar.animate();
+            sidebar.animate();
 
             // Process orders for any item that handles it
             for (var i = game.items.length - 1; i >= 0; i--) {
@@ -275,10 +281,15 @@
 
             // Start drawing the foreground elements
             for (var i = game.sortedItems.length - 1; i >= 0; i--) {
-                var item = game.sortedItems[i];
-
-                item.draw();
-            }
+                if (game.sortedItems[i].type != "bullets") {
+                    game.sortedItems[i].draw();
+                }
+            };
+            
+            // Draw the bullets on top of all the other elements
+            for (var i = game.bullets.length - 1; i >= 0; i--) {
+                game.bullets[i].draw();
+            };
 
             // Draw the mouse
             mouse.draw();
@@ -292,6 +303,7 @@
             game.vehicles = [];
             game.aircraft = [];
             game.terrain = [];
+            game.bullets = [];
             game.triggeredEvents = [];
             game.selectedItems = [];
         },
@@ -348,10 +360,10 @@
         // Send command to either singleplayer or multiplayer object
         sendCommand: function(uids, details) {
             if (game.type == "singleplayer") {
-                app.game.singleplayer.sendCommand(uids, details);
+                singleplayer.sendCommand(uids, details);
             }
             else {
-                app.game.multiplayer.sendCommand(uids, details);
+                multiplayer.sendCommand(uids, details);
             }
         },
 
@@ -577,8 +589,7 @@
 
         return (function loop() {
             if (game.running) {
-                requestAnimationFrame(loop);
-
+                window.requestAnimationFrame(loop);
 
                 // again, Date.now() if it's available
                 var now = Date.now();

@@ -1,7 +1,13 @@
 (function() {
-    var namespace = app.namespace('game');
+    var namespace = app.namespace('game'),
+    game = null;
 
     var common = {
+        
+        init: function() {
+            game = app.game.base;
+        },
+        
         // Finds the angle between two objects in terms of a direction (where 0 <= angle < directions)
         findAngle: function(object, unit, directions) {
 
@@ -14,6 +20,31 @@
 
             // returns the smallest difference (value ranging between -directions/2 to +directions/2) 
             //between two angles(where 0 <= angle < directions)
+        },
+
+        findFiringAngle: function(target, source, directions) {
+            var dy = (target.y) - (source.y);
+            var dx = (target.x) - (source.x);
+            
+            if (target.type == "buildings") {
+                dy += target.baseWidth / 2 / game.gridSize;
+                dx += target.baseHeight / 2 / game.gridSize;
+            }
+            else if (target.type == "aircraft") {
+                dy -= target.pixelShadowHeight / game.gridSize;
+            }
+            
+            if (source.type == "buildings") {
+                dy -= source.baseWidth / 2 / game.gridSize;
+                dx -= source.baseHeight / 2 / game.gridSize;
+            }
+            else if (source.type == "aircraft") {
+                dy += source.pixelShadowHeight / game.gridSize;
+            }
+            
+            //Convert Arctan to value between (0 – 7)
+            var angle = common.wrapDirection(directions / 2 - (Math.atan2(dx, dy) * directions / (2 * Math.PI)), directions);
+            return angle;
         },
 
         angleDiff: function(angle1, angle2, directions) {

@@ -1,6 +1,9 @@
 (function() {
     var namespace = app.namespace('game.entities'),
-        Entity = app.game.entities.Entity;
+        CombatUnit = namespace.CombatUnit,
+        Entity = app.game.entities.Entity,
+        game = null,
+        common = null;
 
     Vehicles.inherit(Entity);
     var vehicles = new Vehicles();
@@ -8,7 +11,14 @@
     namespace.vehicles = vehicles;
 
     function Vehicles() {
-        this.list = {
+        var self = this;
+        
+        self.init = function() {
+            game = app.game.base;
+            common = app.game.common;
+        };
+        
+        self.list = {
             "transport": {
                 name: "transport",
                 pixelWidth: 31,
@@ -103,7 +113,7 @@
             }
         };
 
-        this.defaults = {
+        self.defaults = $.extend(true, new CombatUnit(), {
             type: "vehicles",
             animationIndex: 0,
             direction: 0,
@@ -116,18 +126,15 @@
             directions: 8,
             nextStp: null,
             animate: function() {
-                var gameBase = app.game.base;
-                var common = app.game.common;
-                
                 var direction = null;
-                
+
                 // Consider an item healthy if it has more than 40% life
                 if (this.life > this.hitPoints * 0.4) {
                     this.lifeCode = "healthy";
                 }
                 else if (this.life <= 0) {
                     this.lifeCode = "dead";
-                    gameBase.remove(this);
+                    game.remove(this);
                     return;
                 }
                 else {
@@ -143,30 +150,28 @@
                             this.animationIndex = 0;
                         }
                         break;
-                        case "teleport":
-                            direction = common.wrapDirection(Math.round(this.direction), this.directions);
-                            this.imageList = this.spriteArray["stand-" + direction];
-                            this.imageOffset = this.imageList.offset + this.animationIndex;
-                            this.animationIndex++;
-                            if (this.animationIndex >= this.imageList.count) {
-                                this.animationIndex = 0;
-                            }
-                            if (!this.brightness) {
-                                this.brightness = 1;
-                            }
-                            this.brightness -= 0.03;
-                            if (this.brightness <= 0) {
-                                this.brightness = undefined;
-                                this.action = "stand";
-                            }
-                            break;
+                    case "teleport":
+                        direction = common.wrapDirection(Math.round(this.direction), this.directions);
+                        this.imageList = this.spriteArray["stand-" + direction];
+                        this.imageOffset = this.imageList.offset + this.animationIndex;
+                        this.animationIndex++;
+                        if (this.animationIndex >= this.imageList.count) {
+                            this.animationIndex = 0;
+                        }
+                        if (!this.brightness) {
+                            this.brightness = 1;
+                        }
+                        this.brightness -= 0.03;
+                        if (this.brightness <= 0) {
+                            this.brightness = undefined;
+                            this.action = "stand";
+                        }
+                        break;
                 }
             },
             draw: function() {
-                var gameBase = app.game.base;
-
-                var x = (this.x * gameBase.gridSize) - gameBase.offsetX - this.pixelOffsetX + this.lastMovementX * gameBase.drawingInterpolationFactor * gameBase.gridSize;
-                var y = (this.y * gameBase.gridSize) - gameBase.offsetY - this.pixelOffsetY + this.lastMovementY * gameBase.drawingInterpolationFactor * gameBase.gridSize;
+                var x = (this.x * game.gridSize) - game.offsetX - this.pixelOffsetX + this.lastMovementX * game.drawingInterpolationFactor * game.gridSize;
+                var y = (this.y * game.gridSize) - game.offsetY - this.pixelOffsetY + this.lastMovementY * game.drawingInterpolationFactor * game.gridSize;
 
                 this.drawingX = x;
                 this.drawingY = y;
@@ -177,20 +182,18 @@
 
                 var colorIndex = (this.team == "blue") ? 0 : 1;
                 var colorOffset = colorIndex * this.pixelHeight;
-                gameBase.foregroundContext.drawImage(this.spriteSheet, this.imageOffset * this.pixelWidth,
+                game.foregroundContext.drawImage(this.spriteSheet, this.imageOffset * this.pixelWidth,
                     colorOffset, this.pixelWidth, this.pixelHeight, x, y, this.pixelWidth, this.pixelHeight);
-                
+
                 if (this.brightness) {
-                    gameBase.foregroundContext.beginPath();
-                    gameBase.foregroundContext.arc(x + this.pixelOffsetX, y + this.pixelOffsetY,
+                    game.foregroundContext.beginPath();
+                    game.foregroundContext.arc(x + this.pixelOffsetX, y + this.pixelOffsetY,
                         this.radius, 0, Math.PI * 2, false);
-                    gameBase.foregroundContext.fillStyle = 'rgba(255,255,255,' + this.brightness + ')';
-                    gameBase.foregroundContext.fill();
+                    game.foregroundContext.fillStyle = 'rgba(255,255,255,' + this.brightness + ')';
+                    game.foregroundContext.fill();
                 }
             },
             drawLifeBar: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX;
                 var y = this.drawingY - 2 * game.lifeBarHeight;
                 game.foregroundContext.fillStyle = (this.lifeCode == "healthy") ? game.
@@ -201,8 +204,6 @@
                 game.foregroundContext.strokeRect(x, y, this.pixelWidth, game.lifeBarHeight)
             },
             drawSelection: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX + this.pixelOffsetX;
                 var y = this.drawingY + this.pixelOffsetY;
                 game.foregroundContext.strokeStyle = game.selectionBorderColor;
@@ -214,11 +215,15 @@
                 game.foregroundContext.stroke();
             },
             processOrders: function() {
-                var game = app.game.base;
-                var common = app.game.common;
+                var target = null;
 
                 this.lastMovementX = 0;
                 this.lastMovementY = 0;
+
+                if (this.reloadTimeLeft) {
+                    this.reloadTimeLeft--;
+                }
+
 
                 if (this.orders.isCommand) {
                     this.pathCompleted = false;
@@ -274,7 +279,7 @@
                             return;
                         }
                         // Move to middle of oil field
-                        var target = {
+                        target = {
                             x: this.orders.to.x + 1,
                             y: this.orders.to.y + 0.5,
                             type: "terrain"
@@ -314,6 +319,139 @@
                             }
                         }
                         break;
+                    case "stand":
+                        targets = this.findTargetsInSight();
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0]
+                            };
+                        }
+                        break;
+                    case "sentry":
+                        targets = this.findTargetsInSight(2);
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                        }
+                        break;
+                    case "hunt":
+                        var targets = this.findTargetsInSight(100);
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                        }
+                        break;
+                    case "attack":
+                        if (this.orders.to.lifeCode == "dead" || !this.isValidTarget(this.orders.to)) {
+                            if (this.orders.nextOrder) {
+                                this.orders = this.orders.nextOrder;
+                            }
+                            else {
+                                this.orders = {
+                                    type: "stand"
+                                };
+                            }
+                            return;
+                        }
+                        if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight, 2)) {
+                            
+                            //Turn toward target and then start attacking when within range of the target
+                            var newDirection = common.findFiringAngle(this.orders.to, this, this.directions);
+                            
+                            var difference = common.angleDiff(this.direction, newDirection, this.directions);
+                            var turnAmount = this.turnSpeed * game.turnSpeedAdjustmentFactor;
+                            
+                            if (Math.abs(difference) > turnAmount) {
+                                this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) /
+                                    difference, this.directions);
+                                return;
+                            }
+                            else {
+                                this.direction = newDirection;
+                                if (!this.reloadTimeLeft) {
+                                    this.reloadTimeLeft = namespace.bullets.list[this.weaponType].reloadTime;
+                                    var angleRadians =- (Math.round(this.direction) / this.directions) * 2 * Math.PI;
+                                    var bulletX = this.x - (this.radius * Math.sin(angleRadians) / game.gridSize);
+                                    var bulletY = this.y - (this.radius * Math.cos(angleRadians) / game.gridSize);
+                                    var bullet = game.add({
+                                        name: this.weaponType,
+                                        type: "bullets",
+                                        x: bulletX,
+                                        y: bulletY,
+                                        direction: newDirection,
+                                        target: this.orders.to
+                                    });
+                                }
+                            }
+                        }
+                        else {
+                            var moving = this.moveTo(this.orders.to);
+                            // Pathfinding couldn't find a path so stop
+                            if (!moving) {
+                                this.orders = {
+                                    type: "stand"
+                                };
+                                return;
+                            }
+                        }
+                        break;
+                    case "patrol":
+                            targets = this.findTargetsInSight(1);
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                            return;
+                        }
+                        if ((Math.pow(this.orders.to.x - this.x, 2) +
+                            Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius * 4 / game.gridSize, 2)) {
+                            var to = this.orders.to;
+                            this.orders.to = this.orders.from;
+                            this.orders.from = to;
+                        }
+                        else {
+                            this.moveTo(this.orders.to);
+                        }
+                        break;
+                    case "guard":
+                        if (this.orders.to.lifeCode == "dead") {
+                            if (this.orders.nextOrder) {
+                                this.orders = this.orders.nextOrder;
+                            }
+                            else {
+                                this.orders = {
+                                    type: "stand"
+                                };
+                            }
+                            return;
+                        }
+                        if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight - 2, 2)) {
+                                targets = this.findTargetsInSight(1);
+                            if (targets.length > 0) {
+                                this.orders = {
+                                    type: "attack",
+                                    to: targets[0],
+                                    nextOrder: this.orders
+                                };
+                                return;
+                            }
+                        }
+                        else {
+                            this.moveTo(this.orders.to);
+                        }
+                        break;
+
+
+
                 }
 
             },
@@ -324,8 +462,6 @@
                 this.pathCompleted = false;
             },
             moveTo: function(destination) {
-                var game = app.game.base;
-                var common = app.game.common;
 
                 if (!game.currentMapPassableGrid || !this.pathCompleted) {
                     game.rebuildPassableGrid();
@@ -443,8 +579,6 @@
                         x: 0,
                         y: 0
                     }, this.directions);
-
-
                 }
                 else {
                     this.colliding = false;
@@ -491,7 +625,7 @@
 
                 return true;
             },
-        };
+        });
     }
 
     // Make a list of collisions that the vehicle will have if it goes along present path

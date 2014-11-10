@@ -1,8 +1,10 @@
 (function() {
     var namespace = app.namespace('game.entities'),
-        game = app.game.base,
-        Entity = app.game.entities.Entity,
-        common = app.game.common;
+        Entity = namespace.Entity,
+        CombatUnit = namespace.CombatUnit,
+        common = null,
+        entities = null,
+        game = null;
 
     Aircraft.inherit(Entity);
     var aircraft = new Aircraft();
@@ -10,7 +12,15 @@
     namespace.aircraft = aircraft;
 
     function Aircraft() {
-        this.list = {
+        var self = this;
+
+        self.init = function() {
+            game = app.game.base;
+
+            common = app.game.common;
+        };
+
+        self.list = {
             "chopper": {
                 name: "chopper",
                 cost: 900,
@@ -59,7 +69,7 @@
             }
         };
 
-        this.defaults = {
+        self.defaults = $.extend(true, new CombatUnit(), {
             type: "aircraft",
             animationIndex: 0,
             direction: 0,
@@ -71,8 +81,6 @@
                 type: "float"
             },
             animate: function() {
-                var game = app.game.base;
-
                 var direction = null;
 
                 // Consider an item healthy if it has more than 40% life
@@ -98,29 +106,27 @@
                             this.animationIndex = 0;
                         }
                         break;
-                case "teleport":
-                    direction = common.wrapDirection(Math.round(this.direction + 4), this.directions);
-                    this.imageList = this.spriteArray["fly-" + direction];
-                    this.imageOffset = this.imageList.offset + this.animationIndex;
-                    this.animationIndex++;
-                    if (this.animationIndex >= this.imageList.count) {
-                        this.animationIndex = 0;
-                    }
-                    if (!this.brightness) {
-                        this.brightness = 1;
-                    }
-                    this.brightness -= 0.03;
-                    if (this.brightness <= 0) {
-                        this.brightness = undefined;
-                        this.action = "fly";
-                    }
-                    break;
-                    
+                    case "teleport":
+                        direction = common.wrapDirection(Math.round(this.direction + 4), this.directions);
+                        this.imageList = this.spriteArray["fly-" + direction];
+                        this.imageOffset = this.imageList.offset + this.animationIndex;
+                        this.animationIndex++;
+                        if (this.animationIndex >= this.imageList.count) {
+                            this.animationIndex = 0;
+                        }
+                        if (!this.brightness) {
+                            this.brightness = 1;
+                        }
+                        this.brightness -= 0.03;
+                        if (this.brightness <= 0) {
+                            this.brightness = undefined;
+                            this.action = "fly";
+                        }
+                        break;
+
                 }
             },
             draw: function() {
-                var game = app.game.base;
-
                 var x = (this.x * game.gridSize) - game.offsetX - this.pixelOffsetX +
                     this.lastMovementX * game.drawingInterpolationFactor * game.gridSize;
                 var y = (this.y * game.gridSize) - game.offsetY - this.pixelOffsetY - this.pixelShadowHeight +
@@ -141,7 +147,7 @@
                 game.foregroundContext.drawImage(this.spriteSheet, this.imageOffset * this.pixelWidth,
                     shadowOffset, this.pixelWidth, this.pixelHeight, x, y + this.pixelShadowHeight, this.pixelWidth,
                     this.pixelHeight);
-                    
+
                 // Draw glow while teleporting in
                 if (this.brightness) {
                     game.foregroundContext.beginPath();
@@ -152,8 +158,6 @@
                 }
             },
             drawLifeBar: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX;
                 var y = this.drawingY - 2 * game.lifeBarHeight;
                 game.foregroundContext.fillStyle = (this.lifeCode ==
@@ -164,8 +168,6 @@
                 game.foregroundContext.strokeRect(x, y, this.pixelWidth, game.lifeBarHeight)
             },
             drawSelection: function() {
-                var game = app.game.base;
-
                 var x = this.drawingX + this.pixelOffsetX;
                 var y = this.drawingY + this.pixelOffsetY;
                 game.foregroundContext.strokeStyle = game.selectionBorderColor;
@@ -184,10 +186,14 @@
                 game.foregroundContext.stroke();
             },
             processOrders: function() {
-                var game = app.game.base;
+                var targets = null;
 
                 this.lastMovementX = 0;
                 this.lastMovementY = 0;
+
+                if (this.reloadTimeLeft) {
+                    this.reloadTimeLeft--;
+                }
 
                 switch (this.orders.type) {
                     case "move":
@@ -205,12 +211,139 @@
                             this.moveTo(this.orders.to);
                         }
                         break;
+                    case "float":
+                        targets = this.findTargetsInSight();
+
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0]
+                            };
+                        }
+                        break;
+                    case "sentry":
+                        targets = this.findTargetsInSight(2);
+
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                        }
+                        break;
+                    case "hunt":
+                        targets = this.findTargetsInSight(100);
+
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                        }
+                        break;
+                    case "attack":
+                        if (this.orders.to.lifeCode == "dead" || !this.isValidTarget(this.orders.to)) {
+                            if (this.orders.nextOrder) {
+                                this.orders = this.orders.nextOrder;
+                            }
+                            else {
+                                this.orders = {
+                                    type: "float"
+                                };
+                            }
+                            return;
+                        }
+                        if ((Math.pow(this.orders.to.x - this.x, 2) +
+                            Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight, 2)) {
+                            //Turn toward target and then start attacking when within range of the target
+                            var newDirection = common.findFiringAngle(this.orders.to, this, this.directions);
+                            var difference = common.angleDiff(this.direction, newDirection, this.directions);
+                            var turnAmount = this.turnSpeed * game.turnSpeedAdjustmentFactor;
+                            if (Math.abs(difference) > turnAmount) {
+                                this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) / difference, this.directions);
+                                return;
+                            }
+                            else {
+                                this.direction = newDirection;
+                                if (!this.reloadTimeLeft) {
+                                    this.reloadTimeLeft = namespace.bullets.list[this.weaponType].reloadTime;
+                                    var angleRadians = -(Math.round(this.direction) / this.directions) * 2 * Math.PI;
+                                    var bulletX = this.x - (this.radius * Math.sin(angleRadians) / game.gridSize);
+                                    var bulletY = this.y - (this.radius * Math.cos(angleRadians) / game.gridSize) - this.pixelShadowHeight / game.gridSize;
+                                    var bullet = game.add({
+                                        name: this.weaponType,
+                                        type: "bullets",
+                                        x: bulletX,
+                                        y: bulletY,
+                                        direction: newDirection,
+                                        target: this.orders.to
+                                    });
+                                }
+                            }
+                        }
+                        else {
+                            var moving = this.moveTo(this.orders.to);
+                        }
+                        break;
+                    case "patrol":
+                        targets = this.findTargetsInSight(1);
+                        if (targets.length > 0) {
+                            this.orders = {
+                                type: "attack",
+                                to: targets[0],
+                                nextOrder: this.orders
+                            };
+                            return;
+                        }
+                        
+                        if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius / game.gridSize, 2)) {
+                            var to = this.orders.to;
+                            
+                            this.orders.to = this.orders.from;
+                            this.orders.from = to;
+                        }
+                        else {
+                            this.moveTo(this.orders.to);
+                        }
+
+                        break;
+                    case "guard":
+
+                        if (this.orders.to.lifeCode == "dead") {
+
+                            if (this.orders.nextOrder) {
+                                this.orders = this.orders.nextOrder;
+                            }
+                            else {
+                                this.orders = {
+                                    type: "float"
+                                };
+                            }
+
+                            return;
+                        }
+
+                        if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight - 2, 2)) {
+
+                            targets = this.findTargetsInSight(1);
+                            if (targets.length > 0) {
+                                this.orders = {
+                                    type: "attack",
+                                    to: targets[0],
+                                    nextOrder: this.orders
+                                };
+                                return;
+                            }
+                        }
+                        else {
+                            this.moveTo(this.orders.to);
+                        }
+                        break;
                 }
             },
             moveTo: function(destination) {
-                var common = app.game.common;
-                var base = app.game.base;
-
                 // Find out where we need to turn to get to destination
                 var newDirection = common.findAngle(destination, this, this.directions);
 
@@ -218,14 +351,14 @@
                 var difference = common.angleDiff(this.direction, newDirection, this.directions);
 
                 // Calculate amount that aircraft can turn per animation cycle
-                var turnAmount = this.turnSpeed * base.turnSpeedAdjustmentFactor;
+                var turnAmount = this.turnSpeed * game.turnSpeedAdjustmentFactor;
 
                 if (Math.abs(difference) > turnAmount) {
                     this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) / difference, this.directions);
                 }
                 else {
                     // Calculate distance that aircraft can move per animation cycle
-                    var movement = this.speed * base.speedAdjustmentFactor;
+                    var movement = this.speed * game.speedAdjustmentFactor;
 
                     // Calculate x and y components of the movement
                     var angleRadians = -(Math.round(this.direction) / this.directions) * 2 * Math.PI;
@@ -237,7 +370,7 @@
                     this.y = (this.y + this.lastMovementY);
                 }
             },
-        };
+        });
     }
 
 }());

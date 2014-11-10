@@ -29,20 +29,27 @@
             "items":[
                 {"type":"buildings","name":"base","x":11,"y":14,"team":"blue"},
                 {"type":"buildings","name":"starport","x":18,"y":14,"team":"blue"},
-                {"type":"vehicles","name":"harvester","x":20,"y":12,"team":"blue","direction":3, 'uid': -1},
-                // {"type":"vehicles","name":"harvester","x":24,"y":12,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":26,"y":12,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":28,"y":12,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":30,"y":12,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":32,"y":12,"team":"blue","direction":3},
+                {"type":"vehicles","name":"harvester","x":16,"y":12,"team":"blue","direction":3},
+                {"type":"terrain","name":"bigrocks","x":19,"y":6},
+                {"type":"terrain","name":"smallrocks","x":8,"y":3},
                 
-                // {"type":"vehicles","name":"harvester","x":22,"y":12,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":22,"y":14,"team":"blue","direction":3},                
-                // {"type":"vehicles","name":"harvester","x":22,"y":16,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":22,"y":18,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":22,"y":20,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":22,"y":22,"team":"blue","direction":3},
-                // {"type":"vehicles","name":"harvester","x":22,"y":24,"team":"blue","direction":3},
+                {"type":"vehicles","name":"scout-tank","x":26,"y":14,"team":"blue","direction":4},
+                {"type":"vehicles","name":"heavy-tank","x":26,"y":16,"team":"blue","direction":5},
+                
+                {"type":"aircraft","name":"chopper","x":20,"y":12,"team":"blue","direction":2},
+                {"type":"aircraft","name":"wraith","x":23,"y":12,"team":"blue","direction":3},
+                
+                {"type":"buildings","name":"ground-turret","x":15,"y":23,"team":"green"},
+                {"type":"buildings","name":"ground-turret","x":20,"y":23,"team":"green"},
+                
+                {"type":"vehicles","name":"scout-tank","x":16,"y":26,"team":"green","direction":4},
+                {"type":"vehicles","name":"heavy-tank","x":18,"y":26,"team":"green","direction":6},
+                
+                {"type":"aircraft","name":"chopper","x":20,"y":27,"team":"green","direction":2},
+                {"type":"aircraft","name":"wraith","x":22,"y":28,"team":"green","direction":3},
+                
+                {"type":"buildings","name":"base","x":19,"y":28,"team":"green"},
+                {"type":"buildings","name":"starport","x":15,"y":28,"team":"green"},
                 
                 {"type":"terrain","name":"oilfield","x":3,"y":5,"action":"hint"},
                 
@@ -52,7 +59,7 @@
                 {"type":"terrain","name":"oilfield","x":13,"y":38},
                 {"type":"terrain","name":"oilfield","x":21,"y":5},
                 {"type":"terrain","name":"oilfield","x":25,"y":7},
-                 {"type":"terrain","name":"oilfield","x":13,"y":8},
+                {"type":"terrain","name":"oilfield","x":13,"y":8},
                 {"type":"terrain","name":"oilfield","x":23,"y":19},
                 {"type":"terrain","name":"oilfield","x":26,"y":13},
                 {"type":"terrain","name":"oilfield","x":12,"y":21},
