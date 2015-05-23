@@ -162,7 +162,7 @@
                 singleplayer.endLevel(true);
             }
         },
-                {
+        {
             type: "timed",
             repeat: true,
             time: function f() {

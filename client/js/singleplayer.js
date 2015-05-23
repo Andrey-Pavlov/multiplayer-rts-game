@@ -3,6 +3,7 @@
         game = null,
         maps = app.game.maps,
         loader = app.common.loader,
+        fog = app.game.fog,
         entities = app.game.entities;
 
     var singleplayer = {
@@ -142,6 +143,7 @@
         },
 
         play: function() {
+            fog.initLevel();
             game.animationLoop();
             game.animationInterval = setInterval(game.animationLoop, game.animationTimeout);
             game.start();
