@@ -1,16 +1,21 @@
 (function() {
     var namespace = app.namespace('game'),
         game = null,
+        aircraft = null,
+        vehicles = null,
         singleplayer = null;
 
     var maps = {
         init: function() {
             game = app.game.base;
             singleplayer = app.game.singleplayer;
+            aircraft = app.game.entities.aircraft;
+            vehicles = app.game.entities.vehicles;
         },
-        singleplayer: [{
-            "name": "My vehicles are bugs! WTF?",
-            "briefing": "In this level your vehicles move like bugs. THEY ARE ALIVE! \nYou can select them using the mouse",
+        singleplayer: [
+        {
+            "name": "WARNING! ENEMY INVASION!",
+            "briefing": "Protect your base and make 20k USD",
 
             /* Map Details */
             "mapImage": "images/maps/level-one-debug-grid.png",
@@ -136,13 +141,12 @@
             type: "timed",
             time: 1000,
             action: function(){
-                game.showMessage("system",'Get the harvester near the oil field and gather \n<div style="text-align: center"><strong>40000 fucking USD</strong></div>');
+                game.showMessage("system",'Get the harvester near the oil field and gather \n<div style="text-align: center"><strong>fucking USD</strong></div>');
             }
         },
         {
-            type: "timed",
-            time: 21000,
-            action: function(){
+            type: "conditional",
+            condition: function(){
                 //singleplayer.endLevel(false);
             }
         },
@@ -152,13 +156,54 @@
             condition: function() {
                 var cashBalance = game.cash[game.team];
                 
-                return cashBalance > 40000;
+                return cashBalance > 20000;
             },
             action: function(){
                 singleplayer.endLevel(true);
             }
-        }],
-        }, ]
+        },
+                {
+            type: "timed",
+            repeat: true,
+            time: function f() {
+                f.min = 5;
+                
+                var time = window.randomIntFromInterval(f.min > 2 ? f.min * 1000 : 2000, f.min * 2 * 1000);
+                f.min--;
+                
+                return time;
+                },
+            action: function() {
+
+                var width = game.currentLevel.mapGridWidth,
+                    height = game.currentLevel.mapGridHeight;
+
+                var x = window.randomIntFromInterval(-1, width);
+                var y = null;
+
+                if (x === -1 || x === width) {
+                    y = window.randomIntFromInterval(-1, height);
+                }
+                else {
+                    y = window.randomFromValues(-1, height);
+                }
+
+                var greenFly = {
+                    "type": "aircraft",
+                    "name": window.randomFromValues(Object.keys(aircraft.list)),
+                    "x": x,
+                    "y": y,
+                    "team": "green",
+                    "orders": {
+                        "type": "hunt"
+                    },
+                    "direction": 1
+                };
+
+                game.add(greenFly);
+            }
+        }
+        ]} ]
     };
 
     namespace.maps = maps;

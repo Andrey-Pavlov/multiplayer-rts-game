@@ -1,5 +1,11 @@
-strong, b { font-weight: bold; } 
-
+strong,
+b {
+    font-weight: bold;
+}
+input:focus,
+button:focus {
+    outline: 0 !important;
+}
 /* Game */
 
 input[type="button"] {
@@ -14,26 +20,27 @@ input[type="button"] {
     right: 0;
 }
 #gamecontainer {
-    width: 640px;
-    height: 480px;
+    width: 1024px;
+    height: 768px;
     background: url(/images/splashscreen.png);
+    background-size: cover;
     border: 1px solid black;
     position: absolute;
     top: 50%;
     left: 50%;
-    margin-left: -340px;
-    margin-top: -240px;
+    margin-left: -512px;
+    margin-top: -384px;
 }
 .gamelayer {
-    width: 640px;
-    height: 480px;
+    width: 1024px;
+    height: 768px;
     position: absolute;
     display: none;
 }
 /* Game Starting Menu Screen */
 
 #gamestartscreen {
-    padding-top: 320px;
+    padding-top: 512px;
     text-align: left;
     padding-left: 50px;
     width: 590px;
@@ -67,92 +74,108 @@ input[type="button"] {
 /* Mission Briefing Screen */
 
 #missionscreen {
-    background: url(/images/missionscreen.png) no-repeat;
+    background: url(/images/missionscreen.png);
+    background-size: cover;
 }
 #missionscreen #entermission {
     position: absolute;
-    top: 79px;
-    left: 6px;
-    width: 246px;
-    height: 68px;
+    top: 18.5%;
+    width: 35%;
+    height: 12%;
     border-width: 0px;
     background-image: url(/images/buttons.png);
-    background-position: 0px 0px;
+    background-position: 0% 0%;
+    background-size: 204% 1050%;
 }
 #missionscreen #entermission:disabled,
 #missionscreen #entermission:active {
     background-image: url(/images/buttons.png);
-    background-position: -251px 0px;
+    background-position: 99% 0%;
 }
 #missionscreen #exitmission {
     position: absolute;
-    top: 79px;
-    left: 380px;
-    width: 98px;
-    height: 68px;
+    top: 19%;
+    left: 62%;
+    width: 10.6%;
+    height: 10%;
     border-width: 0px;
     background-image: url(/images/buttons.png);
-    background-position: 0px -76px;
+    background-position: 0% 11.1%;
+    background-size: 506% 1000%;
+    border-radius: 4px;
 }
 #missionscreen #exitmission:disabled,
 #missionscreen #exitmission:active {
     background-image: url(/images/buttons.png);
-    background-position: -103px -76px;
+    background-position: 26% 11.1%;
 }
 #missionscreen #missonbriefing {
+position: absolute;
+padding: 10px;
+top: 33%;
+left: 3%;
+width: 66%;
+height: 64%;
+color: rgb(130, 150, 162);
+font-size: 13px;
+font-family: 'Courier New', Courier, monospace;
+}
+#missionscreen #missontitle {
     position: absolute;
-    padding: 10px;
-    top: 160px;
-    left: 20px;
-    width: 410px;
-    height: 300px;
+    padding: 1%;
+    left: 1%;
+    width: 72%;
+    height: 15%;
     color: rgb(130, 150, 162);
-    font-size: 13px;
     font-family: 'Courier New', Courier, monospace;
 }
 /* Game Interface Screen */
-
+.canvas {
+    width: 75%;
+    height: 84%;
+}
 #gameinterfacescreen {
-    background: url(/images/maininterface.png) no-repeat;
+    background: url(/images/maininterface.png);
+    background-size: cover;
 }
 #gameinterfacescreen #gamemessages {
-    position: absolute;
-    padding-left: 10px;
-    top: 5px;
-    left: 5px;
-    width: 450px;
-    height: 60px;
-    color: rgb(130, 150, 162);
-    overflow: hidden;
-    font-size: 13px;
-    font-family: 'Courier New', Courier, monospace;
+position: absolute;
+padding: 1%;
+top: 1%;
+left: 1%;
+width: 73%;
+height: 14%;
+color: rgb(130, 150, 162);
+overflow: hidden;
+font-size: 22px;
+font-family: 'Courier New', Courier, monospace;
 }
 #gameinterfacescreen #gamemessages span {
     color: white;
 }
 #gameinterfacescreen #callerpicture {
     position: absolute;
-    left: 498px;
-    top: 154px;
-    width: 126px;
-    height: 88px;
+    left: 79%;
+    top: 33%;
+    height: 17%;
+    width: 18%;
     overflow: none;
 }
 #gameinterfacescreen #cash {
-    width: 120px;
-    height: 22px;
-    position: absolute;
-    left: 498px;
-    top: 256px;
-    color: rgb(130, 150, 162);
-    overflow: hidden;
-    font-size: 13px;
-    font-family: 'Courier New', Courier, monospace;
-    text-align: right;
+width: 20%;
+height: 3%;
+position: absolute;
+left: 77%;
+top: 53.4%;
+color: rgb(130, 150, 162);
+overflow: hidden;
+font-size: 26px;
+font-family: 'Courier New', Courier, monospace;
+text-align: right;
 }
 #gameinterfacescreen canvas {
     position: absolute;
-    top: 79px;
+    top: 16%;
     left: 0px;
 }
 #gameinterfacescreen #foregroundcanvas {
@@ -164,12 +187,12 @@ input[type="button"] {
 /* Sidebar Buttons */
 
 #gameinterfacescreen #sidebarbuttons {
-    position: absolute;
-    left: 500px;
-    top: 305px;
-    width: 152px;
-    height: 148px;
-    overflow: none;
+position: absolute;
+left: 78%;
+top: 65%;
+width: 21%;
+height: 20%;
+overflow: none;
 }
 #gameinterfacescreen #sidebarbuttons input[type="button"] {
     width: 43px;

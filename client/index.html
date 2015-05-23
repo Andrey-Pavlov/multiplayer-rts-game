@@ -15,6 +15,8 @@
     <div id="gamecontainer">
 
       <div id="gamestartscreen" class="gamelayer">
+        <span id="baseDefense">Base Defense</span>
+        <br>
         <span id="singleplayer">Campaign</span>
         <br>
         <span id="multiplayer">Multiplayer</span>
@@ -22,6 +24,7 @@
       </div>
 
       <div id="missionscreen" class="gamelayer">
+        <div id="missontitle"></div>
         <input type="button" id="entermission">
         <input type="button" id="exitmission">
         <div id="missonbriefing">Welcome to your first mission.</div>
@@ -42,8 +45,8 @@
           <input type="button" id="wraithbutton" title="Wraith">
           <input type="button" id="placeholder2" disabled>
         </div>
-        <canvas id="gamebackgroundcanvas" height="400" width="480"></canvas>
-        <canvas id="gameforegroundcanvas" height="400" width="480"></canvas>
+        <canvas id="gamebackgroundcanvas" class="canvas" height="480" width="640"></canvas>
+        <canvas id="gameforegroundcanvas" class="canvas" height="480" width="640"></canvas>
       </div>
       <div id="messageboxscreen" class="gamelayer">
         <div id="messagebox">
@@ -60,8 +63,8 @@
   </div>
   <script src="js/libraries/jquery-2.1.1.js" type="text/javascript" charset="utf-8"></script>
   <script type="text/javascript" src="js/libraries/AStar_pathfinding.js"></script>
-  <script type="text/javascript" src="js/common/inheritance.js"></script>
   <script src="js/common/namespace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/common/helpers.js" type="text/javascript" charset="utf-8"></script>
   <script src="js/animate/animatePolyfill.js" type="text/javascript" charset="utf-8"></script>
   <script src="js/common/assetLoader.js" type="text/javascript" charset="utf-8"></script>
 
@@ -90,8 +93,8 @@
       var game = app.game;
 
       base.init($gameLayer, $startScreen);
-
-      $('#singleplayer').click(function() {
+      
+      $('#singleplayer, #baseDefense').click(function() {
         game.singleplayer.start();
       });
 

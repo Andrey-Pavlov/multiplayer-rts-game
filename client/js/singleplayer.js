@@ -103,6 +103,7 @@
 
             // Load the mission screen with the current briefing
             $('#missonbriefing').html(level.briefing.replace(/\n/g, '<br><br>'));
+            $('#missontitle').html('<strong>' + level.name + '</strong>');
             $("#missionscreen").show();
         },
 

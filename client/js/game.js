@@ -95,7 +95,7 @@
                 if (trigger.type == "timed") {
                     trigger.timeout = setTimeout(function() {
                         game.runTrigger(trigger);
-                    }, trigger.time)
+                    }, (typeof trigger.time == 'function') ? trigger.time() : (trigger.time || 1000))
                 }
                 else if (trigger.type == "conditional") {
                     trigger.interval = setInterval(function() {
