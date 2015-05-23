@@ -166,9 +166,9 @@
             type: "timed",
             repeat: true,
             time: function f() {
-                f.min = 5;
+                f.min = 30;
                 
-                var time = window.randomIntFromInterval(f.min > 2 ? f.min * 1000 : 2000, f.min * 2 * 1000);
+                var time = window.randomIntFromInterval(f.min > 20 ? f.min * 1000 : 2000, f.min * 2 * 1000);
                 f.min--;
                 
                 return time;

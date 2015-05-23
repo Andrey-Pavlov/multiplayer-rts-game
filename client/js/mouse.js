@@ -145,8 +145,7 @@
                                 // identify the first selected harvester from players team (since only one can deploy at a time)
                             for (var i = game.selectedItems.length - 1; i >= 0; i--) {
                                 var item = game.selectedItems[i];
-                                if (item.team == game.team && (item.type == "vehicles" && item.name ==
-                                    "harvester")) {
+                                if (item.team == game.team && (item.type == "vehicles" && item.name == "harvester")) {
                                     uids.push(item.uid);
                                     break;
                                 }
@@ -175,8 +174,7 @@
                                 to: {
                                     x: mouse.gameX / game.gridSize,
                                     y: mouse.gameY / game.gridSize
-                                },
-                                
+                                }
                             });
                         }
                     }
@@ -209,7 +207,7 @@
                 });
 
                 $mouseCanvas.mousedown(function(ev) {
-                    if (ev.which == 1) {
+                    if (ev.which === 1) {
                         mouse.buttonPressed = true;
                         mouse.dragX = mouse.gameX;
                         mouse.dragY = mouse.gameY;
@@ -222,7 +220,7 @@
                 $mouseCanvas.mouseup(function(ev) {
                     var shiftPressed = ev.shiftKey;
 
-                    if (ev.which == 1) {
+                    if (ev.which === 1) {
 
                         //Left key was released
                         if (mouse.dragSelect) {
