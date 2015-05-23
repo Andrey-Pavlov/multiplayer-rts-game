@@ -8,6 +8,7 @@
         maps = app.game.maps,
         singleplayer = app.game.singleplayer,
         multiplayer = app.game.multiplayer,
+        fog = app.game.fog,
         entities = app.game.entities;
 
     var game = {
@@ -242,6 +243,8 @@
                 return b.y - a.y + ((b.y == a.y) ? (a.x - b.x) : 0);
             });
 
+            fog.animate()
+
             //Save the time that the last animation loop completed
             game.lastAnimationTime = Date.now();
         },
@@ -290,6 +293,8 @@
             for (var i = game.bullets.length - 1; i >= 0; i--) {
                 game.bullets[i].draw();
             };
+
+            fog.draw();
 
             // Draw the mouse
             mouse.draw();
@@ -566,7 +571,7 @@
                 if (game.messageBoxCancelCallback) {
                     game.messageBoxCancelCallback();
                 }
-            },
+            }
         }
     };
 

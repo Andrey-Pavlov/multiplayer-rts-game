@@ -139,12 +139,12 @@
                 game.showMessage("system",'Get the harvester near the oil field and gather \n<div style="text-align: center"><strong>40000 fucking USD</strong></div>');
             }
         },
-        {
+        {/*
             type: "timed",
             time: 21000,
             action: function(){
-                //singleplayer.endLevel(false);
-            }
+                singleplayer.endLevel(false);
+            }*/
         },
         /* Conditional Event */
         {
@@ -157,7 +157,7 @@
             action: function(){
                 singleplayer.endLevel(true);
             }
-        }],
+        }]
         }, ]
     };
 
