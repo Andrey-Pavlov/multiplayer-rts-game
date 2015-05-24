@@ -2,6 +2,7 @@
     var namespace = app.namespace('game'),
         game = null,
         entities = null,
+        fog = null,
         mouse = null;
 
     var sidebar = {
@@ -9,6 +10,7 @@
             game = namespace.base;
             entities = namespace.entities;
             mouse = namespace.mouse;
+            fog = namespace.fog;
 
             $("#scouttankbutton").click(function() {
                 sidebar.construct['starport']({
@@ -178,7 +180,8 @@
                         if (game.placementGrid[i][j] &&
                             (mouse.gridY + i >= game.currentLevel.mapGridHeight ||
                                 mouse.gridX + j >= game.currentLevel.mapGridWidth ||
-                                game.currentMapBuildableGrid[mouse.gridY + i][mouse.gridX + j] == 1)) {
+                                game.currentMapBuildableGrid[mouse.gridY + i][mouse.gridX + j] === 1 ||
+                            fog.grid[game.team][mouse.gridY + i][mouse.gridX + j] === 1)) {
                             game.canDeployBuilding = false;
                             game.placementGrid[i][j] = 0;
                         }
