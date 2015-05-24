@@ -87,7 +87,7 @@
                 var obstruction = level.mapObstructedTerrain[i];
                 game.currentMapTerrainGrid[obstruction[1]][obstruction[0]] = 1;
             }
-            game.currentMapPassableGrid = undefined;
+            game.currentMapPassableGrid = [];
 
             // Load Starting Cash For Game
             game.cash = $.extend([], level.cash);

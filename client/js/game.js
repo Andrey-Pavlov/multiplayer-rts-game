@@ -14,7 +14,7 @@
 
     var game = {
         /* Debug */
-        debug: false,
+        debug: true,
         
         type: null,
         team: null,
@@ -161,7 +161,24 @@
                 game.initTrigger(game.currentLevel.triggers[i]);
             };
         },
-
+        characters: {
+            "system":{
+                "name":"System",
+                "image":"../images/characters/system.png"
+            },
+            "op":{
+                "name":"Operator",
+                "image":"../images/characters/girl1.png"
+            },
+            "pilot":{
+                "name":"Pilot",
+                "image":"../images/characters/girl2.png"
+            },
+            "driver":{
+                "name":"Driver",
+                "image":"../images/characters/man1.png"
+            }
+        },
         clearSelection: function() {
             while (game.selectedItems.length > 0) {
                 game.selectedItems.pop().selected = false;
@@ -271,7 +288,7 @@
             if (game.debug) {
                 game.foregroundContext.fillStyle = game.obstructedColor;
 
-                if (game.currentMapPassableGrid) {
+                if (game.currentMapPassableGrid.length > 0) {
                     for (var y = game.currentMapPassableGrid.length - 1; y >= 0; y--) {
 
                         for (var x = game.currentMapPassableGrid[y].length - 1; x >= 0; x--) {
@@ -380,7 +397,7 @@
 
         getItemByUid: function(uid) {
             for (var i = game.items.length - 1; i >= 0; i--) {
-                if (game.items[i].uid == uid) {
+                if (game.items[i].uid === uid) {
                     return game.items[i];
                 }
             };
@@ -403,8 +420,11 @@
                 var item = game.getItemByUid(uid);
                 //if uid is a valid item, set the order for the item
                 if (item) {
-                    details.isCommand = true;
-                    item.orders = $.extend(true, {}, details);
+                    //details.isCommand = true;
+                    //item.orders = $.extend(true, {}, details);
+
+                    item.orders = details;
+
                     if (toObject) {
                         item.orders.to = toObject;
                     }
@@ -414,7 +434,7 @@
 
         rebuildPassableGrid: function() {
 
-            game.currentMapPassableGrid = $.extend(true, [], game.currentMapTerrainGrid);
+            game.currentMapPassableGrid = game.currentMapTerrainGrid.slice();
 
             for (var i = game.items.length - 1; i >= 0; i--) {
 
@@ -440,7 +460,7 @@
 
                                     for (var xx = x1; xx <= x2; xx++) {
                                         for (var yy = y1; yy <= y2; yy++) {
-                                            game.currentMapPassableGrid[yy][xx] = 1;
+                                            //game.currentMapPassableGrid[yy][xx] = 1;
                                         };
                                     };
 
@@ -588,7 +608,7 @@
     //Functions
     function clearPassableGrid(item) {
         if (item.type == "buildings" || item.type == "terrain") {
-            game.currentMapPassableGrid = undefined;
+            game.currentMapPassableGrid = [];
         }
     }
 

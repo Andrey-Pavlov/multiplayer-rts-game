@@ -124,7 +124,6 @@
             selected: false,
             selectable: true,
             directions: 8,
-            nextStp: null,
             animate: function() {
                 var direction = null;
 
@@ -225,11 +224,11 @@
                 }
 
 
-                if (this.orders.isCommand) {
+                /*if (this.orders.isCommand) {
                     this.pathCompleted = false;
 
                     this.orders.isCommand = false;
-                }
+                }*/
 
                 switch (this.orders.type) {
                     case "move":
@@ -261,6 +260,7 @@
                                 }
                             }
                             // Try to move to the destination
+                            this.pathCompleted = false;
                             var moving = this.moveTo(this.orders.to);
                             if (!moving) {
                                 // Pathfinding couldn't find a path so stop
@@ -273,6 +273,7 @@
                     case "deploy":
                         // If oilfield has been used already, then cancel order
                         if (this.orders.to.lifeCode == "dead") {
+
                             this.orders = {
                                 type: "stand"
                             };
@@ -310,6 +311,7 @@
                             }
                         }
                         else {
+                            this.pathCompleted = false;
                             var moving = this.moveTo(target);
                             // Pathfinding couldn't find a path so stop
                             if (!moving) {
@@ -392,6 +394,7 @@
                             }
                         }
                         else {
+                            this.pathCompleted = false;
                             var moving = this.moveTo(this.orders.to);
                             // Pathfinding couldn't find a path so stop
                             if (!moving) {
@@ -419,6 +422,7 @@
                             this.orders.from = to;
                         }
                         else {
+                            this.pathCompleted = false;
                             this.moveTo(this.orders.to);
                         }
                         break;
@@ -446,12 +450,10 @@
                             }
                         }
                         else {
+                            this.pathCompleted = false;
                             this.moveTo(this.orders.to);
                         }
                         break;
-
-
-
                 }
 
             },
@@ -459,7 +461,8 @@
                 this.orders = {
                     type: "stand"
                 };
-                this.pathCompleted = false;
+
+                //this.pathCompleted = false;
             },
             moveTo: function(destination) {
 
@@ -497,27 +500,21 @@
                         this.orders.path = AStar(grid, start, end, 'Euclidean');
 
                         this.pathCompleted = true;
-                        this.nextStp = 1;
                     }
 
                     if (this.orders.path.length > 1) {
-                        if (this.nextStp < this.orders.path.length) {
                             var nextStep = {
-                                x: this.orders.path[this.nextStp][0] + 0.5,
-                                y: this.orders.path[this.nextStp][1] + 0.5
+                                x: this.orders.path[1][0] + 0.5,
+                                y: this.orders.path[1][1] + 0.5
                             };
                             newDirection = common.findAngle(nextStep, this, this.directions);
-                        }
                     }
                     else if (start[0] == end[0] && start[1] == end[1]) {
                         // Reached destination grid;
                         this.orders.path = [this, destination];
                         newDirection = common.findAngle(destination, this, this.directions);
-
-                        this.stopMoving();
                     }
                     else {
-                        this.stopMoving();
                         // There is no path
                         return false;
                     }
@@ -542,13 +539,13 @@
                         y: 0
                     };
 
-                    if (this.nextStp < this.orders.path.length) {
+                    if (1 < this.orders.path.length) {
                         // By default, the next step has a mild attraction force
                         collisionObjects.push({
                             collisionType: "attraction",
                             with: {
-                                x: this.orders.path[this.nextStp][0] + 0.5,
-                                y: this.orders.path[this.nextStp][1] + 0.5
+                                x: this.orders.path[1][0] + 0.5,
+                                y: this.orders.path[1][1] + 0.5
                             }
                         });
                     }
@@ -616,15 +613,15 @@
                         this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) / difference, this.directions);
                     }
 
-                    if (this.nextStp < this.orders.path.length - 1) {
+                    /*if (this.nextStp < this.orders.path.length - 1) {
                         if ((Math.abs(this.x - this.orders.path[this.nextStp][0]) < (2 * this.radius / game.gridSize)) && (Math.abs(this.y - this.orders.path[this.nextStp][1]) < (2 * this.radius / game.gridSize))) {
                             this.nextStp = this.nextStp + 1;
                         }
-                    }
+                    }*/
                 }
 
                 return true;
-            },
+            }
         });
     }
 

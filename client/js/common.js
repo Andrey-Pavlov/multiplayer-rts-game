@@ -83,7 +83,14 @@
             }
 
             return direction;
-        }
+        },
+
+        isItemDead: function (uid){
+
+        var item = game.getItemByUid(uid);
+
+        return (!item || item.lifeCode == "dead");
+    }
     };
 
     namespace.common = common;
