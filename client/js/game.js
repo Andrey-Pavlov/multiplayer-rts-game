@@ -9,6 +9,7 @@
         singleplayer = app.game.singleplayer,
         multiplayer = app.game.multiplayer,
         fog = app.game.fog,
+        sounds = app.game.sounds,
         entities = app.game.entities;
 
     var game = {
@@ -70,6 +71,7 @@
             sidebar.init();
             maps.init();
             singleplayer.init();
+            sounds.init();
             
             //Entities
             entities.init();
@@ -329,6 +331,10 @@
 
             clearPassableGrid(item);
 
+            if (item.type == "bullets"){
+                sounds.play(item.name);
+            }
+
             return item;
         },
 
@@ -504,6 +510,8 @@
         },
 
         showMessage: function(from, message) {
+            sounds.play('message-received');
+
             var character = game.characters[from];
             if (character) {
                 from = character.name;

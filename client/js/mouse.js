@@ -4,6 +4,7 @@
         var game = null,
             entities = null,
             fog = null,
+            sounds = null,
             sidebar = null;
 
         var mouse = {
@@ -120,6 +121,8 @@
                                             type: "attack",
                                             toUid: clickedItem.uid
                                         });
+
+                                        sounds.play("acknowledge-attacking");
                                     }
                                 }
                                 else { 
@@ -138,6 +141,8 @@
                                             type: "guard",
                                             toUid: clickedItem.uid
                                         });
+
+                                        sounds.play("acknowledge-moving");
                                     }
                                 }
                             }
@@ -157,6 +162,8 @@
                                     type: "deploy",
                                     toUid: clickedItem.uid
                                 });
+
+                                sounds.play("acknowledge-moving");
                             }
                         }
                     }
@@ -177,6 +184,8 @@
                                     y: mouse.gameY / game.gridSize
                                 }
                             });
+
+                            sounds.play("acknowledge-moving");
                         }
                     }
                 }
@@ -186,6 +195,7 @@
                 entities = app.game.entities,
                 sidebar = app.game.sidebar;
                 fog = app.game.fog;
+                sounds = app.game.sounds;
 
                 var $mouseCanvas = $("#gameforegroundcanvas");
 
