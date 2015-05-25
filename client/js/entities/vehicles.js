@@ -12,12 +12,12 @@
 
     function Vehicles() {
         var self = this;
-        
+
         self.init = function() {
             game = app.game.base;
             common = app.game.common;
         };
-        
+
         self.list = {
             "transport": {
                 name: "transport",
@@ -223,12 +223,7 @@
                     this.reloadTimeLeft--;
                 }
 
-
-                /*if (this.orders.isCommand) {
-                    this.pathCompleted = false;
-
-                    this.orders.isCommand = false;
-                }*/
+                this.pathCompleted = false;
 
                 switch (this.orders.type) {
                     case "move":
@@ -236,16 +231,16 @@
                         var distanceFromDestinationSquared = (Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2));
                         if (distanceFromDestinationSquared < Math.pow(this.radius / game.gridSize, 2)) {
                             this.stopMoving();
-                            return;
+                            break;
                         }
                         else if (this.colliding && (distanceFromDestinationSquared < Math.pow(this.radius * 3 / game.gridSize, 2))) {
                             //Stop when within 3 radius of the destination if colliding with something
                             this.stopMoving();
-                            return;
+                            break;
                         }
                         else {
                             if (this.colliding && (Math.pow(this.orders.to.x - this.x, 2) +
-                                Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius * 5 / game.gridSize, 2)) {
+                                    Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius * 5 / game.gridSize, 2)) {
                                 // Count collsions within 5 radius distance of goal
                                 if (!this.orders.collisionCount) {
                                     this.orders.collisionCount = 1;
@@ -256,16 +251,15 @@
                                 // Stop if more than 10 collisions occur
                                 if (this.orders.collisionCount > 30) {
                                     this.stopMoving();
-                                    return;
+                                    break;
                                 }
                             }
                             // Try to move to the destination
-                            this.pathCompleted = false;
                             var moving = this.moveTo(this.orders.to);
                             if (!moving) {
                                 // Pathfinding couldn't find a path so stop
                                 this.stopMoving();
-                                return;
+                                break;
                             }
                         }
                         break;
@@ -274,10 +268,8 @@
                         // If oilfield has been used already, then cancel order
                         if (this.orders.to.lifeCode == "dead") {
 
-                            this.orders = {
-                                type: "stand"
-                            };
-                            return;
+                            this.stopMoving();
+                            break;
                         }
                         // Move to middle of oil field
                         target = {
@@ -311,17 +303,16 @@
                             }
                         }
                         else {
-                            this.pathCompleted = false;
                             var moving = this.moveTo(target);
                             // Pathfinding couldn't find a path so stop
                             if (!moving) {
-                                this.orders = {
-                                    type: "stand"
-                                };
+                                this.stopMoving();
                             }
                         }
                         break;
                     case "stand":
+                        this.pathCompleted = true;
+
                         targets = this.findTargetsInSight();
                         if (targets.length > 0) {
                             this.orders = {
@@ -356,30 +347,28 @@
                                 this.orders = this.orders.nextOrder;
                             }
                             else {
-                                this.orders = {
-                                    type: "stand"
-                                };
+                                this.stopMoving();
                             }
-                            return;
+                            break;
                         }
                         if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight, 2)) {
-                            
+
                             //Turn toward target and then start attacking when within range of the target
                             var newDirection = common.findFiringAngle(this.orders.to, this, this.directions);
-                            
+
                             var difference = common.angleDiff(this.direction, newDirection, this.directions);
                             var turnAmount = this.turnSpeed * game.turnSpeedAdjustmentFactor;
-                            
+
                             if (Math.abs(difference) > turnAmount) {
                                 this.direction = common.wrapDirection(this.direction + turnAmount * Math.abs(difference) /
                                     difference, this.directions);
-                                return;
+                                break;
                             }
                             else {
                                 this.direction = newDirection;
                                 if (!this.reloadTimeLeft) {
                                     this.reloadTimeLeft = namespace.bullets.list[this.weaponType].reloadTime;
-                                    var angleRadians =- (Math.round(this.direction) / this.directions) * 2 * Math.PI;
+                                    var angleRadians = -(Math.round(this.direction) / this.directions) * 2 * Math.PI;
                                     var bulletX = this.x - (this.radius * Math.sin(angleRadians) / game.gridSize);
                                     var bulletY = this.y - (this.radius * Math.cos(angleRadians) / game.gridSize);
                                     var bullet = game.add({
@@ -394,35 +383,31 @@
                             }
                         }
                         else {
-                            this.pathCompleted = false;
                             var moving = this.moveTo(this.orders.to);
                             // Pathfinding couldn't find a path so stop
                             if (!moving) {
-                                this.orders = {
-                                    type: "stand"
-                                };
-                                return;
+                                this.stopMoving();
+                                break;
                             }
                         }
                         break;
                     case "patrol":
-                            targets = this.findTargetsInSight(1);
+                        targets = this.findTargetsInSight(1);
                         if (targets.length > 0) {
                             this.orders = {
                                 type: "attack",
                                 to: targets[0],
                                 nextOrder: this.orders
                             };
-                            return;
+                            break;
                         }
                         if ((Math.pow(this.orders.to.x - this.x, 2) +
-                            Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius * 4 / game.gridSize, 2)) {
+                                Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.radius * 4 / game.gridSize, 2)) {
                             var to = this.orders.to;
                             this.orders.to = this.orders.from;
                             this.orders.from = to;
                         }
                         else {
-                            this.pathCompleted = false;
                             this.moveTo(this.orders.to);
                         }
                         break;
@@ -432,41 +417,36 @@
                                 this.orders = this.orders.nextOrder;
                             }
                             else {
-                                this.orders = {
-                                    type: "stand"
-                                };
+                                this.stopMoving();
                             }
-                            return;
+                            break;
                         }
                         if ((Math.pow(this.orders.to.x - this.x, 2) + Math.pow(this.orders.to.y - this.y, 2)) < Math.pow(this.sight - 2, 2)) {
-                                targets = this.findTargetsInSight(1);
+                            targets = this.findTargetsInSight(1);
                             if (targets.length > 0) {
                                 this.orders = {
                                     type: "attack",
                                     to: targets[0],
                                     nextOrder: this.orders
                                 };
-                                return;
+                                break;
                             }
                         }
                         else {
-                            this.pathCompleted = false;
                             this.moveTo(this.orders.to);
                         }
                         break;
                 }
-
+                
             },
             stopMoving: function() {
                 this.orders = {
                     type: "stand"
                 };
-
-                //this.pathCompleted = false;
             },
             moveTo: function(destination) {
 
-                if (!game.currentMapPassableGrid || !this.pathCompleted) {
+                if (game.currentMapPassableGrid.length === 0 || !this.pathCompleted) {
                     game.rebuildPassableGrid();
                 }
 
@@ -475,7 +455,7 @@
                 var end = [Math.floor(destination.x), Math.floor(destination.y)];
                 //    var grid = $.extend(true, [], game.currentMapPassableGrid);
 
-                var grid = game.currentMapPassableGrid;
+                var grid = game.currentMapPassableGrid.slice();
 
                 // Allow destination to be "movable" so that algorithm can find a path
                 if (destination.type == "buildings" || destination.type == "terrain") {
@@ -498,16 +478,14 @@
                     if (!this.pathCompleted) {
                         //Use A* algorithm to try and find a path to the destination
                         this.orders.path = AStar(grid, start, end, 'Euclidean');
-
-                        this.pathCompleted = true;
                     }
 
                     if (this.orders.path.length > 1) {
-                            var nextStep = {
-                                x: this.orders.path[1][0] + 0.5,
-                                y: this.orders.path[1][1] + 0.5
-                            };
-                            newDirection = common.findAngle(nextStep, this, this.directions);
+                        var nextStep = {
+                            x: this.orders.path[1][0] + 0.5,
+                            y: this.orders.path[1][1] + 0.5
+                        };
+                        newDirection = common.findAngle(nextStep, this, this.directions);
                     }
                     else if (start[0] == end[0] && start[1] == end[1]) {
                         // Reached destination grid;
@@ -594,7 +572,6 @@
 
                     this.hardCollisionCounter = this.hardCollisionCounter ? this.hardCollisionCounter + 1 : 1;
                     if (this.hardCollisionCounter > 10) {
-                        this.pathCompleted = false;
                         this.hardCollisionCounter = null;
                     }
                 }

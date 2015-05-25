@@ -18,11 +18,11 @@
             /*{
                 "name": "Rescue",
                 "briefing": "In the months since the great war, mankind has fallen into chaos. Billions are dead with cities in ruins.\nSmall groups of survivors band together to try and survive as best     as they can.\nWe are trying to reach out to all the survivors in this sector before we join back with the main colony.",
-                /!* Map Details *!/
+                // Map Details
                 "mapImage": "images/maps/level-one.png",
                 "startX": 36,
                 "startY": 0,
-                /!* Map coordinates that are obstructed by terrain*!/
+                // Map coordinates that are obstructed by terrain
                 "mapGridWidth": 60,
                 "mapGridHeight": 40,
                 "mapObstructedTerrain": [
@@ -75,21 +75,21 @@
                     [26, 35], [27, 35], [25, 36], [26, 36], [27, 36], [25, 37], [26, 37], [23, 38], [24, 38], [25, 38], [26, 38],
                     [26, 39], [2, 25], [9, 19], [36, 31]
                 ],
-                /!* Entities to be loaded *!/
+                // Entities to be loaded
                 "requirements": {
                     "buildings": ["base"],
                     "vehicles": ["transport", "scout-tank", "heavy-tank"],
                     "aircraft": [],
                     "terrain": []
                 },
-                /!* Economy Related*!/
+                // Economy Related
                 "cash": {
                     "blue": 0,
                     "green": 0
                 },
-                /!* Entities to be added *!/
+                // Entities to be added
                 "items": [
-                    /!* Slightly damaged base *!/
+                    // Slightly damaged base
                     {"type": "buildings", "name": "base", "x": 55, "y": 6, "team": "blue", "life": 100},
                     {
                         "type": "vehicles",
@@ -100,7 +100,7 @@
                         "team": "blue",
                         "uid": -1
                     },
-                    /!* Two transport vehicles waiting just outside the visible map *!/
+                    // Two transport vehicles waiting just outside the visible map
                     {
                         "type": "vehicles", "name": "transport", "x": -3, "y": 2, "direction": 2, "team": "blue",
                         "uid": -3, "selectable": false
@@ -109,7 +109,7 @@
                         "type": "vehicles", "name": "transport", "x": -3, "y": 4, "direction": 2, "team": "blue",
                         "uid": -4, "selectable": false
                     },
-                    /!* Two damaged enemy scout-tanks patroling the area*!/
+                    // Two damaged enemy scout-tanks patroling the area
                     {
                         "type": "vehicles",
                         "name": "scout-tank",
@@ -133,7 +133,7 @@
                         "orders": {"type": "stand", "from": {"x": 14, "y": 0}, "to": {"x": 14, "y": 14}}
                     },
                 ],
-                /!* Conditional and Timed Trigger Events *!/
+                // Conditional and Timed Trigger Events
                 "triggers": [
                     {
                         "type": "timed", "time": 3000,
@@ -276,6 +276,8 @@
                     {"type":"buildings","name":"ground-turret","x":53,"y":17,"team":"blue"},
                     {"type":"vehicles","name":"heavy-tank","x":55,"y":16,"direction":4,"team":"blue",
                         "uid":-2,"orders":{"type":"sentry"}},
+                    {"type":"buildings","name":"ground-turret","x":56,"y":15,"team":"green","uid":-99, "hitPoints": 1},
+                    
                     /* The first wave of attacks*/
                     {"type":"vehicles","name":"scout-tank","x":55,"y":36,"direction":4,"team":"green","orders":
                     {"type":"hunt"}},

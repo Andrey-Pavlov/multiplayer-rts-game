@@ -172,7 +172,7 @@
                 // Compare with buildable grid to see where we need to place the building
                 var placementGrid = entities.buildings.list[game.deployBuilding].buildableGrid;
                 
-                game.placementGrid = $.extend(true, [], placementGrid);
+                game.placementGrid = placementGrid.slice();
                 game.canDeployBuilding = true;
                 
                 for (var i = game.placementGrid.length - 1; i >= 0; i--) {
@@ -190,7 +190,7 @@
             }
         },
         cancelDeployingBuilding:function(){
-            game.deployBuilding = undefined;
+            game.deployBuilding = null;
         },
         finishDeployingBuilding: function() {
             var buildingName = game.deployBuilding;
@@ -220,7 +220,7 @@
             }
             
             // Clear deployBuilding flag
-            game.deployBuilding = undefined;
+            game.deployBuilding = null;
         },
     };
 

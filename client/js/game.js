@@ -434,19 +434,19 @@
 
         rebuildPassableGrid: function() {
 
-            game.currentMapPassableGrid = game.currentMapTerrainGrid.slice();
+            game.currentMapPassableGrid = $.extend(true,[],game.currentMapTerrainGrid);
 
             for (var i = game.items.length - 1; i >= 0; i--) {
 
                 var item = game.items[i];
 
-                if (item.type == 'buildings' || item.type == 'terrain' || (item.type === 'vehicles' && item.orders.type === 'stand')) {
+                if (item.type == 'buildings' || item.type == 'terrain') {
 
                     for (var y = item.passableGrid.length - 1; y >= 0; y--) {
 
                         for (var x = item.passableGrid[y].length - 1; x >= 0; x--) {
 
-                            if (item.passableGrid[y][x]) {
+                            if (item.passableGrid[y][x] === 1) {
 
                                 if (item.type === 'vehicles') {
 
@@ -460,7 +460,7 @@
 
                                     for (var xx = x1; xx <= x2; xx++) {
                                         for (var yy = y1; yy <= y2; yy++) {
-                                            //game.currentMapPassableGrid[yy][xx] = 1;
+                                            game.currentMapPassableGrid[yy][xx] = 1;
                                         };
                                     };
 
@@ -488,7 +488,6 @@
                                     game.currentMapPassableGrid[item.y + y][item.x + x] = 1;
                                 }
                             }
-
                         }
                     }
                 }
@@ -496,7 +495,7 @@
         },
 
         rebuildBuildableGrid: function() {
-            game.currentMapBuildableGrid = $.extend(true, [], game.currentMapTerrainGrid);
+            game.currentMapBuildableGrid = game.currentMapTerrainGrid.slice();
 
             for (var i = game.items.length - 1; i >= 0; i--) {
                 var item = game.items[i];

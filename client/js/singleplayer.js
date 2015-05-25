@@ -90,7 +90,7 @@
             game.currentMapPassableGrid = [];
 
             // Load Starting Cash For Game
-            game.cash = $.extend([], level.cash);
+            game.cash = $.extend({}, level.cash);
 
             // Enable the enter mission button once all assets are loaded
             if (loader.loaded) {
